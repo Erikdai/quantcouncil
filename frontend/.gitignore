@@ -1,0 +1,9 @@
+node_modules
+dist
+*.local
+*.tsbuildinfo
+npm-debug.log*
+.vite
+
+# The repository root .gitignore (Python template) ignores every `lib/` directory;
+# re-include the frontend's source folder.

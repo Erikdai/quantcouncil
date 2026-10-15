@@ -1,0 +1,266 @@
+@import 'tailwindcss';
+
+/* Class-based dark mode: <html class="dark"> is set from the theme store. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ---------------------------------------------------------------------------
+ * Design tokens. Semantic colours swap per theme; components only use these.
+ * A-share convention: --up is RED (gain / buy), --down is GREEN (loss / sell).
+ * ------------------------------------------------------------------------- */
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --surface-2: #f0f2f5;
+  --surface-3: #e7eaef;
+  --line: #e2e5ea;
+  --line-strong: #cfd4dc;
+  --fg: #141820;
+  --fg-2: #3a4252;
+  --muted: #6b7385;
+  --accent: #3b5bdb;
+  --accent-fg: #ffffff;
+  --up: #e03131;
+  --down: #0f9d58;
+  --warn: #d97706;
+  --ok: #2b8a3e;
+  --info: #1c7ed6;
+  --chart-grid: #eef0f3;
+  --shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 1px 3px rgb(16 24 40 / 0.06);
+}
+
+.dark {
+  --bg: #0b0d12;
+  --surface: #12151d;
+  --surface-2: #181c26;
+  --surface-3: #222736;
+  --line: #242a37;
+  --line-strong: #333b4d;
+  --fg: #e7eaf0;
+  --fg-2: #bcc3d1;
+  --muted: #8a93a6;
+  --accent: #7091ff;
+  --accent-fg: #0b0d12;
+  --up: #f2555a;
+  --down: #22c07a;
+  --warn: #f5a524;
+  --ok: #40c057;
+  --info: #4dabf7;
+  --chart-grid: #1a1f2a;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-up: var(--up);
+  --color-down: var(--down);
+  --color-warn: var(--warn);
+  --color-ok: var(--ok);
+  --color-info: var(--info);
+  --shadow-card: var(--shadow);
+}
+
+@theme {
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei',
+    'Noto Sans CJK SC', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Cascadia Code', ui-monospace, Consolas, 'Microsoft YaHei', monospace;
+
+  --animate-caret: caret 1s steps(2, start) infinite;
+  --animate-fade-in: fade-in 160ms ease-out;
+  --animate-slide-in: slide-in 200ms ease-out;
+
+  @keyframes caret {
+    to {
+      visibility: hidden;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+  }
+}
+
+@layer base {
+  html,
+  body {
+    background: var(--bg);
+    color: var(--fg);
+  }
+  body {
+    @apply font-sans antialiased;
+    font-feature-settings: 'tnum' 1;
+  }
+  ::selection {
+    background: color-mix(in oklab, var(--accent) 25%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  input[type='date']::-webkit-calendar-picker-indicator {
+    opacity: 0.6;
+    cursor: pointer;
+  }
+  .dark input[type='date']::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--line-strong) transparent;
+  }
+}
+
+/* Streaming caret after live text (a utility so it works with variants). */
+@utility caret {
+  &::after {
+    content: '▋';
+    margin-left: 1px;
+    color: var(--accent);
+    animation: var(--animate-caret);
+  }
+}
+
+@layer components {
+  /* Markdown (agent reports, SKILL.md, chat answers). */
+  .md {
+    font-size: 0.875rem;
+    line-height: 1.7;
+    color: var(--fg-2);
+    overflow-wrap: anywhere;
+  }
+  .md > :first-child {
+    margin-top: 0;
+  }
+  .md > :last-child {
+    margin-bottom: 0;
+  }
+  .md h1,
+  .md h2,
+  .md h3,
+  .md h4 {
+    color: var(--fg);
+    font-weight: 600;
+    line-height: 1.35;
+    margin: 1.4em 0 0.6em;
+  }
+  .md h1 {
+    font-size: 1.25rem;
+  }
+  .md h2 {
+    font-size: 1.1rem;
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid var(--line);
+  }
+  .md h3 {
+    font-size: 1rem;
+  }
+  .md h4 {
+    font-size: 0.9rem;
+  }
+  .md p {
+    margin: 0.7em 0;
+  }
+  .md ul,
+  .md ol {
+    margin: 0.6em 0;
+    padding-left: 1.4em;
+  }
+  .md ul {
+    list-style: disc;
+  }
+  .md ol {
+    list-style: decimal;
+  }
+  .md li {
+    margin: 0.25em 0;
+  }
+  .md li::marker {
+    color: var(--muted);
+  }
+  .md strong {
+    color: var(--fg);
+    font-weight: 600;
+  }
+  .md a {
+    color: var(--accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .md blockquote {
+    margin: 0.8em 0;
+    padding: 0.2em 0 0.2em 0.9em;
+    border-left: 3px solid var(--line-strong);
+    color: var(--muted);
+  }
+  .md hr {
+    border: 0;
+    border-top: 1px solid var(--line);
+    margin: 1.2em 0;
+  }
+  .md code {
+    font-family: var(--font-mono);
+    font-size: 0.8em;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 0.1em 0.35em;
+  }
+  .md pre {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0.8em 1em;
+    overflow-x: auto;
+    margin: 0.8em 0;
+  }
+  .md pre code {
+    background: none;
+    border: 0;
+    padding: 0;
+    font-size: 0.8rem;
+  }
+  .md table {
+    display: block;
+    overflow-x: auto;
+    border-collapse: collapse;
+    margin: 0.9em 0;
+    font-size: 0.8rem;
+    max-width: 100%;
+  }
+  .md th,
+  .md td {
+    border: 1px solid var(--line);
+    padding: 0.4em 0.7em;
+    text-align: left;
+    white-space: nowrap;
+  }
+  .md td {
+    white-space: normal;
+    min-width: 5rem;
+  }
+  .md th {
+    background: var(--surface-2);
+    color: var(--fg);
+    font-weight: 600;
+  }
+  .md tr:nth-child(even) td {
+    background: color-mix(in oklab, var(--surface-2) 50%, transparent);
+  }
+}

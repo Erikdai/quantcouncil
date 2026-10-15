@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="FinAgent: multi-agent LLM research and paper trading for China A-shares" />
+    <meta name="color-scheme" content="light dark" />
+    <title>FinAgent</title>
+    <script>
+      // Apply theme and language before first paint (no flash); the app keeps them in sync afterwards.
+      ;(function () {
+        var root = document.documentElement
+        var theme = 'system'
+        var lang = null
+        try {
+          theme = localStorage.getItem('finagent-theme') || 'system'
+          lang = localStorage.getItem('finagent-lang')
+        } catch (e) {}
+        var dark =
+          theme === 'dark' ||
+          (theme !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        root.classList.toggle('dark', dark)
+        root.style.colorScheme = dark ? 'dark' : 'light'
+        if (lang !== 'zh' && lang !== 'en') lang = (navigator.language || '').toLowerCase().indexOf('zh') === 0 ? 'zh' : 'en'
+        root.lang = lang === 'zh' ? 'zh-CN' : 'en'
+      })()
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
