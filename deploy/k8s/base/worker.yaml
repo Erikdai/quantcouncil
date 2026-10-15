@@ -16,12 +16,12 @@ spec:
       terminationGracePeriodSeconds: 300
       containers:
         - name: worker
-          image: finagent
-          command: ["taskiq", "worker", "finagent.worker.broker:broker", "finagent.worker.tasks",
+          image: quantcouncil
+          command: ["taskiq", "worker", "quantcouncil.worker.broker:broker", "quantcouncil.worker.tasks",
                     "--workers", "1", "--max-async-tasks", "4"]
           envFrom:
-            - configMapRef: {name: finagent-config}
-            - secretRef: {name: finagent-secrets}
+            - configMapRef: {name: quantcouncil-config}
+            - secretRef: {name: quantcouncil-secrets}
           resources:
             requests: {cpu: 500m, memory: 1Gi}
             limits: {memory: 3Gi}
@@ -50,11 +50,11 @@ spec:
     spec:
       containers:
         - name: scheduler
-          image: finagent
-          command: ["taskiq", "scheduler", "finagent.worker.broker:scheduler", "finagent.worker.tasks"]
+          image: quantcouncil
+          command: ["taskiq", "scheduler", "quantcouncil.worker.broker:scheduler", "quantcouncil.worker.tasks"]
           envFrom:
-            - configMapRef: {name: finagent-config}
-            - secretRef: {name: finagent-secrets}
+            - configMapRef: {name: quantcouncil-config}
+            - secretRef: {name: quantcouncil-secrets}
           resources:
             requests: {cpu: 50m, memory: 256Mi}
             limits: {memory: 512Mi}

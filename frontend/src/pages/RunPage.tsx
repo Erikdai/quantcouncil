@@ -6,6 +6,7 @@ import { ApiError } from '@/api/client'
 import { useRunEvents, type ConnectionState } from '@/api/sse'
 import type { RunEvent, RunEventType, RunOut } from '@/api/types'
 import { RatingBadge, StatusBadge } from '@/components/common/Badges'
+import { ExportMenu } from '@/components/common/ExportMenu'
 import { KlineChart } from '@/components/common/KlineChart'
 import { ApprovalCard } from '@/components/run/ApprovalCard'
 import { EvalPanel } from '@/components/run/EvalPanel'
@@ -17,7 +18,7 @@ import { Badge } from '@/components/ui/Badge'
 import { Button, buttonClass } from '@/components/ui/Button'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { EmptyState, ErrorState, Skeleton } from '@/components/ui/Feedback'
-import { qk, useKline, useRun } from '@/hooks/api'
+import { isTerminal, qk, useKline, useRun } from '@/hooks/api'
 import { useRunView, type RunView } from '@/hooks/useRunView'
 import { useI18n, useT } from '@/i18n/I18nProvider'
 import { providerShort } from '@/lib/constants'
@@ -79,7 +80,7 @@ function RunHeader({
         <ArrowLeft className="size-3.5" /> {t('nav.dashboard')}
       </Link>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1 basis-96">
           <h1 className="flex flex-wrap items-baseline gap-x-2 text-xl font-semibold tracking-tight text-fg">
             <span className="font-mono">{run.ticker}</span>
             {run.name && <span>{run.name}</span>}
@@ -101,7 +102,7 @@ function RunHeader({
             {run.auto_approve && <Badge tone="muted">{t('runForm.autoApprove')}</Badge>}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
           {run.llm?.provider && (
             <Badge
               tone="muted"
@@ -115,6 +116,7 @@ function RunHeader({
           <StatusBadge status={status} />
           {rating && <RatingBadge rating={rating} />}
           {children}
+          {isTerminal(status) && <ExportMenu target={{ kind: 'run', runId: run.id }} size="sm" />}
         </div>
       </div>
     </div>

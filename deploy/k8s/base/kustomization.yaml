@@ -1,9 +1,9 @@
 # kubectl apply -k deploy/k8s/base
 # For production, swap the in-cluster Postgres/Redis for managed services
-# (set FINAGENT_DATABASE_URL / FINAGENT_REDIS_URL in the secret) and drop infra.yaml.
+# (set QUANTCOUNCIL_DATABASE_URL / QUANTCOUNCIL_REDIS_URL in the secret) and drop infra.yaml.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-namespace: finagent
+namespace: quantcouncil
 resources:
   - namespace.yaml
   - configmap.yaml
@@ -15,13 +15,13 @@ resources:
   - web.yaml
   - ingress.yaml
 secretGenerator:
-  - name: finagent-secrets
+  - name: quantcouncil-secrets
     envs:
       - secrets.env   # copy secrets.env.example -> secrets.env (git-ignored)
 images:
-  - name: finagent
-    newName: ghcr.io/your-org/finagent
+  - name: quantcouncil
+    newName: ghcr.io/your-org/quantcouncil
     newTag: latest
-  - name: finagent-web
-    newName: ghcr.io/your-org/finagent-web
+  - name: quantcouncil-web
+    newName: ghcr.io/your-org/quantcouncil-web
     newTag: latest

@@ -15,7 +15,7 @@ export const LANGS: readonly Lang[] = ['zh', 'en']
 /** Toggle labels: each language's own short name, identical in both UIs. */
 export const LANG_LABELS: Record<Lang, string> = { zh: '中', en: 'EN' }
 
-const STORAGE_KEY = 'finagent-lang'
+const STORAGE_KEY = 'quantcouncil-lang'
 const DICTS: Record<Lang, Messages> = { zh, en }
 
 function detect(): Lang {

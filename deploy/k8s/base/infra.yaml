@@ -16,13 +16,13 @@ spec:
         - name: postgres
           image: pgvector/pgvector:pg18
           env:
-            - {name: POSTGRES_USER, value: finagent}
-            - {name: POSTGRES_DB, value: finagent}
+            - {name: POSTGRES_USER, value: quantcouncil}
+            - {name: POSTGRES_DB, value: quantcouncil}
             - name: POSTGRES_PASSWORD
-              valueFrom: {secretKeyRef: {name: finagent-secrets, key: POSTGRES_PASSWORD}}
+              valueFrom: {secretKeyRef: {name: quantcouncil-secrets, key: POSTGRES_PASSWORD}}
           ports: [{containerPort: 5432}]
           readinessProbe:
-            exec: {command: ["pg_isready", "-U", "finagent", "-d", "finagent"]}
+            exec: {command: ["pg_isready", "-U", "quantcouncil", "-d", "quantcouncil"]}
             periodSeconds: 5
           resources:
             requests: {cpu: 250m, memory: 512Mi}
@@ -62,7 +62,7 @@ spec:
                  "--maxmemory-policy", "noeviction"]
           env:
             - name: REDIS_AUTH
-              valueFrom: {secretKeyRef: {name: finagent-secrets, key: REDIS_AUTH}}
+              valueFrom: {secretKeyRef: {name: quantcouncil-secrets, key: REDIS_AUTH}}
           ports: [{containerPort: 6379}]
           resources:
             requests: {cpu: 100m, memory: 256Mi}

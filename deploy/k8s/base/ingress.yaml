@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: finagent
+  name: quantcouncil
   annotations:
     # SSE: no buffering, long reads.
     nginx.ingress.kubernetes.io/proxy-buffering: "off"
@@ -9,7 +9,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: finagent.local
+    - host: quantcouncil.local
       http:
         paths:
           - path: /api

@@ -265,3 +265,35 @@ export function useTestLlm() {
     meta: { errorTitle: 'err.testLlm' },
   })
 }
+
+// ---------------------------------------------------------------------------
+// Holdings the user already owns (no cash moves; journaled in the ledger)
+// ---------------------------------------------------------------------------
+
+export function useSetHolding(account = 'default') {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ ticker, quantity, avgCost }: { ticker: string; quantity: number; avgCost: number }) =>
+      api.setHolding(ticker, { quantity, avg_cost: avgCost }, account),
+    meta: { errorTitle: 'err.holding' },
+    onSuccess: (pf) => qc.setQueryData(qk.portfolio(account), pf),
+  })
+}
+
+export function useRemoveHolding(account = 'default') {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (ticker: string) => api.removeHolding(ticker, account),
+    meta: { errorTitle: 'err.holding' },
+    onSuccess: (pf) => qc.setQueryData(qk.portfolio(account), pf),
+  })
+}
+
+export function useSetCash(account = 'default') {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (cash: number) => api.setCash(cash, account),
+    meta: { errorTitle: 'err.cash' },
+    onSuccess: (pf) => qc.setQueryData(qk.portfolio(account), pf),
+  })
+}

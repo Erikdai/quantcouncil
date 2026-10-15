@@ -1,9 +1,9 @@
 {
-  "name": "finagent-web",
+  "name": "quantcouncil-web",
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "FinAgent web console: A-share multi-agent LLM trading research platform",
+  "description": "QuantCouncil web console: A-share multi-agent LLM trading research platform",
   "engines": {
     "node": ">=22.12.0"
   },

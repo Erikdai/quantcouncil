@@ -5,7 +5,7 @@
  */
 export const zh = {
   // app shell
-  'app.title': 'FinAgent · A股智能投研',
+  'app.title': 'QuantCouncil · A股智能投研',
   'app.subtitle': 'A股智能投研',
   'app.disclaimer': '多智能体 LLM 投研 · 仅供研究，不构成投资建议',
   'nav.main': '主导航',
@@ -88,6 +88,9 @@ export const zh = {
   'err.ingest': '提交入库任务失败',
   'err.saveSettings': '保存设置失败',
   'err.testLlm': '连接测试失败',
+  'err.holding': '更新持仓失败',
+  'err.cash': '设置现金失败',
+  'err.export': '导出失败',
 
   // relative time & durations
   'time.justNow': '刚刚',
@@ -191,6 +194,8 @@ export const zh = {
   'runForm.model': '模型',
   'runForm.modelChange': '更改',
   'runForm.noKey': '未配置 API 密钥',
+  'runForm.noHoldings': '暂无持仓：在模拟账户中录入你的持仓，让决策考虑它们',
+  'runForm.addHoldings': '去录入 →',
   'quick.600519': '贵州茅台',
   'quick.000001': '平安银行',
   'quick.300750': '宁德时代',
@@ -582,12 +587,50 @@ export const zh = {
   'settings.saved': '设置已保存',
   'settings.savedDesc': '新的分析将使用 {provider} · {model}',
 
+  // holdings editor
+  'holdings.edit': '编辑持仓',
+  'holdings.close': '完成',
+  'holdings.title': '编辑持仓',
+  'holdings.subtitle': '录入你已持有的股票与现金，智能体决策时会参考',
+  'holdings.hint':
+    '智能体在决策时会参考这些持仓；每次修改都会记入哈希链账本。录入已持有的股票不扣减现金，资本基数按成本相应增加，录入的股份可立即卖出。',
+  'holdings.add': '添加持仓',
+  'holdings.ticker': '代码',
+  'holdings.quantity': '数量（股）',
+  'holdings.avgCost': '成本价',
+  'holdings.addBtn': '添加',
+  'holdings.save': '保存',
+  'holdings.remove': '移除',
+  'holdings.confirmRemove': '确认移除',
+  'holdings.cash': '现金（元）',
+  'holdings.setCash': '设置现金',
+  'holdings.cashHint': '资本基数随现金变动同步调整',
+  'holdings.empty': '暂无持仓，在上方添加',
+  'holdings.saved': '持仓已更新',
+  'holdings.removed': '已移除 {ticker}',
+  'holdings.cashSaved': '现金已更新',
+  'holdings.errTicker': '请输入股票代码',
+  'holdings.errQty': '数量须为非负整数',
+  'holdings.errAddQty': '数量须为正整数',
+  'holdings.errCost': '成本价须大于 0',
+  'holdings.errCash': '现金不能为负',
+
+  // exports
+  'export.daily': '导出日报',
+  'export.run': '导出报告',
+  'export.day': '日期',
+  'export.dayHint': '默认最近一次分析的日期；留空 = 最近交易日',
+  'export.pdf': 'PDF',
+  'export.word': 'Word',
+  'export.langNote': '报告语言跟随界面（中文）',
+  'export.done': '已下载 {file}',
+
   // skills
   'skills.title': '技能库',
   'skills.desc': 'Agent Skills：以 SKILL.md 描述的可复用能力（渐进式披露），智能体按需加载到上下文。',
   'skills.count': '{n} 个技能',
   'skills.emptyTitle': '暂无技能',
-  'skills.emptyDesc': '在 finagent/skills 下添加 SKILL.md 即可被智能体按需加载。',
+  'skills.emptyDesc': '在 quantcouncil/skills 下添加 SKILL.md 即可被智能体按需加载。',
   'skills.back': '全部技能',
   'skills.noBody': '该技能没有正文。',
   'skills.pickTitle': '选择一个技能',

@@ -1,11 +1,11 @@
 import { useId, useState, type FormEvent, type Ref } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { Check, Cpu, Play, Sparkles } from 'lucide-react'
+import { Briefcase, Check, Cpu, Play, Sparkles } from 'lucide-react'
 import type { AnalystKey } from '@/api/types'
 import { Button } from '@/components/ui/Button'
 import { Card, CardBody, CardHeader } from '@/components/ui/Card'
 import { Field, Input, Switch } from '@/components/ui/Controls'
-import { useCreateRun, useLlmSettings } from '@/hooks/api'
+import { useCreateRun, useLlmSettings, usePortfolio } from '@/hooks/api'
 import { useT } from '@/i18n/I18nProvider'
 import { ANALYST_KEYS, providerShort } from '@/lib/constants'
 import { cn } from '@/lib/cn'
@@ -16,6 +16,25 @@ const QUICK_PICKS = [
   { ticker: '000001.SZ', name: 'quick.000001' },
   { ticker: '300750', name: 'quick.300750' },
 ] as const
+
+/** Nudge to enter holdings when the account is empty, so decisions account for the real book. */
+function HoldingsHint() {
+  const t = useT()
+  const { data } = usePortfolio()
+  if (!data || data.positions.length > 0) return null
+  return (
+    <Link
+      to="/portfolio"
+      className="group flex gap-2 rounded-lg border border-warn/30 bg-warn/[0.06] px-3 py-2 text-xs leading-relaxed text-fg-2 hover:border-warn/60"
+    >
+      <Briefcase className="mt-0.5 size-3.5 shrink-0 text-warn" aria-hidden />
+      <span>
+        {t('runForm.noHoldings')}{' '}
+        <span className="whitespace-nowrap text-accent group-hover:underline">{t('runForm.addHoldings')}</span>
+      </span>
+    </Link>
+  )
+}
 
 /** "Model: Claude · quick / deep" with a link to Settings; hidden until the settings load. */
 function ModelLine() {
@@ -152,6 +171,7 @@ export function RunForm({ ticker, onTickerChange, tickerRef }: RunFormProps) {
             description={t('runForm.autoApproveDesc')}
           />
 
+          <HoldingsHint />
           <ModelLine />
 
           <Button

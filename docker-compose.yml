@@ -1,4 +1,4 @@
-# FinAgent full stack.
+# QuantCouncil full stack.
 #
 #   docker compose up -d --build                      # app: postgres, redis, mcp, api, worker, scheduler, web
 #   docker compose --profile observability up -d      # + self-hosted Langfuse v4 (web on :3000)
@@ -6,37 +6,37 @@
 #
 # Secrets come from .env (see .env.example). Ports bind to localhost except the web UI.
 
-x-finagent-env: &finagent-env
-  FINAGENT_DATABASE_URL: postgresql+psycopg://finagent:${POSTGRES_PASSWORD:-finagent}@postgres:5432/finagent
-  FINAGENT_REDIS_URL: redis://:${REDIS_AUTH:-finagent-redis}@redis:6379/0
-  FINAGENT_MCP_URL: http://mcp:8001/mcp
-  FINAGENT_DATA_DIR: /data
-  FINAGENT_MODEL_CACHE_DIR: /data/models
+x-quantcouncil-env: &quantcouncil-env
+  QUANTCOUNCIL_DATABASE_URL: postgresql+psycopg://quantcouncil:${POSTGRES_PASSWORD:-quantcouncil}@postgres:5432/quantcouncil
+  QUANTCOUNCIL_REDIS_URL: redis://:${REDIS_AUTH:-quantcouncil-redis}@redis:6379/0
+  QUANTCOUNCIL_MCP_URL: http://mcp:8001/mcp
+  QUANTCOUNCIL_DATA_DIR: /data
+  QUANTCOUNCIL_MODEL_CACHE_DIR: /data/models
   HF_HOME: /data/models/hf
-  FINAGENT_SECRET_KEY: ${FINAGENT_SECRET_KEY:-finagent-dev-secret-change-me}
+  QUANTCOUNCIL_SECRET_KEY: ${QUANTCOUNCIL_SECRET_KEY:-quantcouncil-dev-secret-change-me}
   LANGFUSE_HOST: ${LANGFUSE_HOST:-http://langfuse-web:3000}
   TZ: Asia/Shanghai
 
-x-finagent-service: &finagent-service
-  image: finagent:latest
+x-quantcouncil-service: &quantcouncil-service
+  image: quantcouncil:latest
   build:
     context: .
-    dockerfile: deploy/finagent.Dockerfile
+    dockerfile: deploy/quantcouncil.Dockerfile
   env_file:
     - path: .env
       required: false
-  environment: *finagent-env
+  environment: *quantcouncil-env
   volumes:
-    - finagent_data:/data
+    - quantcouncil_data:/data
   restart: unless-stopped
 
 services:
   postgres:
     image: pgvector/pgvector:pg18
     environment:
-      POSTGRES_USER: finagent
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-finagent}
-      POSTGRES_DB: finagent
+      POSTGRES_USER: quantcouncil
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-quantcouncil}
+      POSTGRES_DB: quantcouncil
       TZ: UTC
     volumes:
       - postgres_data:/var/lib/postgresql
@@ -44,7 +44,7 @@ services:
     ports:
       - 127.0.0.1:${POSTGRES_HOST_PORT:-15432}:5432
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U finagent -d finagent"]
+      test: ["CMD-SHELL", "pg_isready -U quantcouncil -d quantcouncil"]
       interval: 3s
       timeout: 3s
       retries: 20
@@ -53,21 +53,21 @@ services:
   redis:
     image: redis:8-alpine
     # noeviction: queues and Langfuse's BullMQ must never lose keys under memory pressure.
-    command: ["redis-server", "--requirepass", "${REDIS_AUTH:-finagent-redis}", "--appendonly", "yes",
+    command: ["redis-server", "--requirepass", "${REDIS_AUTH:-quantcouncil-redis}", "--appendonly", "yes",
               "--maxmemory-policy", "noeviction"]
     volumes:
       - redis_data:/data
     ports:
       - 127.0.0.1:${REDIS_HOST_PORT:-6379}:6379
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_AUTH:-finagent-redis}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_AUTH:-quantcouncil-redis}", "ping"]
       interval: 3s
       timeout: 3s
       retries: 20
     restart: unless-stopped
 
   migrate:
-    <<: *finagent-service
+    <<: *quantcouncil-service
     command: ["alembic", "upgrade", "head"]
     restart: "no"
     depends_on:
@@ -75,8 +75,8 @@ services:
         condition: service_healthy
 
   mcp:
-    <<: *finagent-service
-    command: ["python", "-m", "finagent.mcp_server", "--transport", "streamable-http", "--host", "0.0.0.0", "--port", "8001"]
+    <<: *quantcouncil-service
+    command: ["python", "-m", "quantcouncil.mcp_server", "--transport", "streamable-http", "--host", "0.0.0.0", "--port", "8001"]
     ports:
       - 127.0.0.1:8001:8001
     depends_on:
@@ -91,8 +91,8 @@ services:
       retries: 10
 
   api:
-    <<: *finagent-service
-    command: ["uvicorn", "finagent.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+    <<: *quantcouncil-service
+    command: ["uvicorn", "quantcouncil.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
     ports:
       - 127.0.0.1:8000:8000
     depends_on:
@@ -109,8 +109,8 @@ services:
       retries: 10
 
   worker:
-    <<: *finagent-service
-    command: ["taskiq", "worker", "finagent.worker.broker:broker", "finagent.worker.tasks",
+    <<: *quantcouncil-service
+    command: ["taskiq", "worker", "quantcouncil.worker.broker:broker", "quantcouncil.worker.tasks",
               "--workers", "2", "--max-async-tasks", "4"]
     depends_on:
       migrate:
@@ -121,8 +121,8 @@ services:
         condition: service_healthy
 
   scheduler:
-    <<: *finagent-service
-    command: ["taskiq", "scheduler", "finagent.worker.broker:scheduler", "finagent.worker.tasks"]
+    <<: *quantcouncil-service
+    command: ["taskiq", "scheduler", "quantcouncil.worker.broker:scheduler", "quantcouncil.worker.tasks"]
     depends_on:
       redis:
         condition: service_healthy
@@ -153,10 +153,10 @@ services:
     ports:
       - 3000:3000
     environment: &langfuse-env
-      DATABASE_URL: postgresql://finagent:${POSTGRES_PASSWORD:-finagent}@postgres:5432/langfuse
+      DATABASE_URL: postgresql://quantcouncil:${POSTGRES_PASSWORD:-quantcouncil}@postgres:5432/langfuse
       NEXTAUTH_URL: http://localhost:3000
-      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-finagent-nextauth-change-me}
-      SALT: ${LANGFUSE_SALT:-finagent-salt-change-me}
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-quantcouncil-nextauth-change-me}
+      SALT: ${LANGFUSE_SALT:-quantcouncil-salt-change-me}
       ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
       TELEMETRY_ENABLED: "false"
       CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
@@ -166,7 +166,7 @@ services:
       CLICKHOUSE_CLUSTER_ENABLED: "false"
       REDIS_HOST: redis
       REDIS_PORT: "6379"
-      REDIS_AUTH: ${REDIS_AUTH:-finagent-redis}
+      REDIS_AUTH: ${REDIS_AUTH:-quantcouncil-redis}
       LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
       LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
       LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
@@ -182,15 +182,15 @@ services:
       LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
       LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
       # First boot creates an org, a project and these API keys, so traces flow at once.
-      LANGFUSE_INIT_ORG_ID: finagent
-      LANGFUSE_INIT_ORG_NAME: FinAgent
-      LANGFUSE_INIT_PROJECT_ID: finagent
-      LANGFUSE_INIT_PROJECT_NAME: finagent
-      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-finagent-local}
-      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-finagent-local}
-      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-admin@finagent.local}
+      LANGFUSE_INIT_ORG_ID: quantcouncil
+      LANGFUSE_INIT_ORG_NAME: QuantCouncil
+      LANGFUSE_INIT_PROJECT_ID: quantcouncil
+      LANGFUSE_INIT_PROJECT_NAME: quantcouncil
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-quantcouncil-local}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-quantcouncil-local}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-admin@quantcouncil.local}
       LANGFUSE_INIT_USER_NAME: admin
-      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-finagent-admin}
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-quantcouncil-admin}
     restart: unless-stopped
 
   langfuse-worker:
@@ -250,7 +250,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  finagent_data:
+  quantcouncil_data:
   clickhouse_data:
   clickhouse_logs:
   minio_data:

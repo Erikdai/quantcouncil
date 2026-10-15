@@ -13,12 +13,12 @@ spec:
     spec:
       containers:
         - name: mcp
-          image: finagent
-          command: ["python", "-m", "finagent.mcp_server", "--transport", "streamable-http",
+          image: quantcouncil
+          command: ["python", "-m", "quantcouncil.mcp_server", "--transport", "streamable-http",
                     "--host", "0.0.0.0", "--port", "8001"]
           envFrom:
-            - configMapRef: {name: finagent-config}
-            - secretRef: {name: finagent-secrets}
+            - configMapRef: {name: quantcouncil-config}
+            - secretRef: {name: quantcouncil-secrets}
           ports: [{containerPort: 8001}]
           readinessProbe:
             httpGet: {path: /healthz, port: 8001}

@@ -12,11 +12,11 @@ spec:
     spec:
       containers:
         - name: api
-          image: finagent
-          command: ["uvicorn", "finagent.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+          image: quantcouncil
+          command: ["uvicorn", "quantcouncil.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
           envFrom:
-            - configMapRef: {name: finagent-config}
-            - secretRef: {name: finagent-secrets}
+            - configMapRef: {name: quantcouncil-config}
+            - secretRef: {name: quantcouncil-secrets}
           ports: [{containerPort: 8000}]
           readinessProbe:
             httpGet: {path: /api/health, port: 8000}

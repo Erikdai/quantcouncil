@@ -33,18 +33,18 @@ jobs:
       postgres:
         image: pgvector/pgvector:pg18
         env:
-          POSTGRES_USER: finagent
-          POSTGRES_PASSWORD: finagent
-          POSTGRES_DB: finagent
+          POSTGRES_USER: quantcouncil
+          POSTGRES_PASSWORD: quantcouncil
+          POSTGRES_DB: quantcouncil
         ports: ["5432:5432"]
-        options: --health-cmd "pg_isready -U finagent" --health-interval 3s --health-retries 20
+        options: --health-cmd "pg_isready -U quantcouncil" --health-interval 3s --health-retries 20
       redis:
         image: redis:8-alpine
         ports: ["6379:6379"]
     env:
-      FINAGENT_DATABASE_URL: postgresql+psycopg://finagent:finagent@127.0.0.1:5432/finagent
-      FINAGENT_REDIS_URL: redis://127.0.0.1:6379/0
-      FINAGENT_MCP_ENABLED: "false"
+      QUANTCOUNCIL_DATABASE_URL: postgresql+psycopg://quantcouncil:quantcouncil@127.0.0.1:5432/quantcouncil
+      QUANTCOUNCIL_REDIS_URL: redis://127.0.0.1:6379/0
+      QUANTCOUNCIL_MCP_ENABLED: "false"
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -53,7 +53,7 @@ jobs:
           python-version: "3.13"
       - run: uv pip install --system -e ".[platform-dev]"
       - run: alembic upgrade head
-      - run: pytest -q -m integration tests/finagent
+      - run: pytest -q -m integration tests/quantcouncil
 
   lint:
     name: ruff

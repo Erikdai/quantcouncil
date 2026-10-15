@@ -1,9 +1,11 @@
 import { useId, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
-import { Briefcase, ListOrdered, RotateCcw, ShieldAlert } from 'lucide-react'
+import { Briefcase, ListOrdered, Pencil, RotateCcw, ShieldAlert } from 'lucide-react'
 import type { AccountOut, OrderOut, PositionOut } from '@/api/types'
 import { SideBadge } from '@/components/common/Badges'
+import { ExportMenu } from '@/components/common/ExportMenu'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { HoldingsEditor } from '@/components/portfolio/HoldingsEditor'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Card, CardHeader } from '@/components/ui/Card'
@@ -298,6 +300,7 @@ export default function PortfolioPage() {
   const pf = usePortfolio()
   const orders = useOrders(50)
   const [resetOpen, setResetOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
 
   return (
     <>
@@ -316,6 +319,16 @@ export default function PortfolioPage() {
                   {t('pf.ledgerBad')}
                 </Badge>
               ))}
+            <ExportMenu target={{ kind: 'daily' }} />
+            <Button
+              variant={editing ? 'primary' : 'secondary'}
+              icon={<Pencil className="size-4" />}
+              aria-pressed={editing}
+              onClick={() => setEditing((v) => !v)}
+              disabled={!pf.data}
+            >
+              {t('holdings.edit')}
+            </Button>
             <Button icon={<RotateCcw className="size-4" />} onClick={() => setResetOpen(true)} disabled={!pf.data}>
               {t('pf.reset')}
             </Button>
@@ -336,6 +349,7 @@ export default function PortfolioPage() {
       ) : (
         <div className="space-y-5">
           <KpiTiles a={pf.data.account} />
+          {editing && <HoldingsEditor portfolio={pf.data} onClose={() => setEditing(false)} />}
           <Card>
             <CardHeader
               title={t('pos.title')}

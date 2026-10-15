@@ -252,7 +252,7 @@ def cached(ttl: int, namespace: str) -> Callable:
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
             raw = repr((args, sorted(kwargs.items()))).encode()
-            key = f"finagent:cn:{namespace}:{hashlib.sha1(raw).hexdigest()}"
+            key = f"quantcouncil:cn:{namespace}:{hashlib.sha1(raw).hexdigest()}"
             backend = _cache_backend
             try:
                 hit = backend.get(key)

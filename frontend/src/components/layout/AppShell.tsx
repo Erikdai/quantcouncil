@@ -40,7 +40,7 @@ function Brand() {
     <NavLink to="/" className="flex items-center gap-2.5">
       <img src="/favicon.svg" alt="" className="size-7" />
       <span className="leading-tight">
-        <span className="block text-sm font-semibold tracking-tight text-fg">FinAgent</span>
+        <span className="block text-sm font-semibold tracking-tight text-fg">QuantCouncil</span>
         <span className="block text-[11px] text-muted">{t('app.subtitle')}</span>
       </span>
     </NavLink>

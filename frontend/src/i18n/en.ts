@@ -3,7 +3,7 @@ import type { Messages } from './zh'
 /** English UI strings. Typed as `Messages`: missing or extra keys fail the type-check. */
 export const en: Messages = {
   // app shell
-  'app.title': 'FinAgent · A-share Research Agent',
+  'app.title': 'QuantCouncil · A-share Research Agent',
   'app.subtitle': 'A-share Research Agent',
   'app.disclaimer': 'Multi-agent LLM research · for research only, not investment advice',
   'nav.main': 'Main navigation',
@@ -86,6 +86,9 @@ export const en: Messages = {
   'err.ingest': 'Failed to queue the ingestion',
   'err.saveSettings': 'Failed to save the settings',
   'err.testLlm': 'Connection test failed',
+  'err.holding': 'Failed to update the holding',
+  'err.cash': 'Failed to set the cash',
+  'err.export': 'Export failed',
 
   // relative time & durations
   'time.justNow': 'just now',
@@ -190,6 +193,8 @@ export const en: Messages = {
   'runForm.model': 'Model',
   'runForm.modelChange': 'Change',
   'runForm.noKey': 'API key not set',
+  'runForm.noHoldings': 'No holdings yet: add yours in Paper Account so decisions account for them',
+  'runForm.addHoldings': 'Add holdings →',
   'quick.600519': 'Kweichow Moutai',
   'quick.000001': 'Ping An Bank',
   'quick.300750': 'CATL',
@@ -589,13 +594,51 @@ export const en: Messages = {
   'settings.saved': 'Settings saved',
   'settings.savedDesc': 'New runs will use {provider} · {model}',
 
+  // holdings editor
+  'holdings.edit': 'Edit holdings',
+  'holdings.close': 'Done',
+  'holdings.title': 'Edit holdings',
+  'holdings.subtitle': 'Enter the shares and cash you already have; the agents decide around them',
+  'holdings.hint':
+    'The agents take these holdings into account when they decide, and every edit is journaled in the hash-chained ledger. Entering shares you already own does not move cash: the capital base grows by their cost, and the shares are sellable at once.',
+  'holdings.add': 'Add a holding',
+  'holdings.ticker': 'Ticker',
+  'holdings.quantity': 'Quantity (shares)',
+  'holdings.avgCost': 'Average cost',
+  'holdings.addBtn': 'Add',
+  'holdings.save': 'Save',
+  'holdings.remove': 'Remove',
+  'holdings.confirmRemove': 'Confirm remove',
+  'holdings.cash': 'Cash (CNY)',
+  'holdings.setCash': 'Set cash',
+  'holdings.cashHint': 'The capital base moves by the same amount',
+  'holdings.empty': 'No holdings yet; add one above',
+  'holdings.saved': 'Holding updated',
+  'holdings.removed': 'Removed {ticker}',
+  'holdings.cashSaved': 'Cash updated',
+  'holdings.errTicker': 'Enter a ticker',
+  'holdings.errQty': 'The quantity must be a whole number, 0 or more',
+  'holdings.errAddQty': 'The quantity must be a positive whole number',
+  'holdings.errCost': 'The average cost must be above 0',
+  'holdings.errCash': 'Cash cannot be negative',
+
+  // exports
+  'export.daily': 'Export daily report',
+  'export.run': 'Export report',
+  'export.day': 'Date',
+  'export.dayHint': 'Defaults to the latest analysis date; empty = latest trading day',
+  'export.pdf': 'PDF',
+  'export.word': 'Word',
+  'export.langNote': 'The report uses the interface language (English)',
+  'export.done': 'Downloaded {file}',
+
   // skills
   'skills.title': 'Skills',
   'skills.desc':
     'Agent Skills: reusable capabilities described in SKILL.md (progressive disclosure), loaded into context on demand.',
   'skills.count': '{n} skills',
   'skills.emptyTitle': 'No skills',
-  'skills.emptyDesc': 'Add a SKILL.md under finagent/skills and agents can load it on demand.',
+  'skills.emptyDesc': 'Add a SKILL.md under quantcouncil/skills and agents can load it on demand.',
   'skills.back': 'All skills',
   'skills.noBody': 'This skill has no body.',
   'skills.pickTitle': 'Select a skill',

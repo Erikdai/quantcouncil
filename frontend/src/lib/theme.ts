@@ -10,7 +10,7 @@ import { useSyncExternalStore } from 'react'
 export type ThemePref = 'light' | 'dark' | 'system'
 export type ResolvedTheme = 'light' | 'dark'
 
-const STORAGE_KEY = 'finagent-theme'
+const STORAGE_KEY = 'quantcouncil-theme'
 const media = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null
 
 function readPref(): ThemePref {

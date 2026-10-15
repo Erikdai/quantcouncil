@@ -1,5 +1,5 @@
 /**
- * TypeScript mirror of finagent/api/schemas.py (the backend's HTTP contract).
+ * TypeScript mirror of quantcouncil/api/schemas.py (the backend's HTTP contract).
  *
  * Conventions: Python `date` / `datetime` arrive as ISO strings; `X | None`
  * fields are `X | null`; fields with a Pydantic default are optional on input
@@ -217,6 +217,23 @@ export interface ResetRequest {
   initial_cash: number
 }
 
+/** A holding the user already owns (PUT /api/portfolio/positions/{ticker}); quantity 0 removes it. */
+export interface HoldingIn {
+  quantity: number
+  avg_cost: number
+}
+
+export interface CashIn {
+  cash: number
+}
+
+// ---------------------------------------------------------------------------
+// Exports (GET /api/reports/daily, GET /api/runs/{id}/report)
+// ---------------------------------------------------------------------------
+
+export type ExportFormat = 'pdf' | 'docx'
+export type ExportLang = 'zh' | 'en'
+
 // ---------------------------------------------------------------------------
 // Market data & watchlist
 // ---------------------------------------------------------------------------
@@ -305,7 +322,7 @@ export interface DocumentOut {
 }
 
 // ---------------------------------------------------------------------------
-// LLM settings (/api/settings, mirrors finagent/llm_settings.py)
+// LLM settings (/api/settings, mirrors quantcouncil/llm_settings.py)
 // ---------------------------------------------------------------------------
 
 export const LLM_PROVIDERS = ['deepseek', 'openai', 'anthropic'] as const

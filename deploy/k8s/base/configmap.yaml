@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: finagent-config
+  name: quantcouncil-config
 data:
-  FINAGENT_MCP_URL: http://mcp:8001/mcp
-  FINAGENT_DATA_DIR: /data
-  FINAGENT_MODEL_CACHE_DIR: /models
+  QUANTCOUNCIL_MCP_URL: http://mcp:8001/mcp
+  QUANTCOUNCIL_DATA_DIR: /data
+  QUANTCOUNCIL_MODEL_CACHE_DIR: /models
   HF_HOME: /models/hf
   TRADINGAGENTS_LLM_PROVIDER: deepseek
   TRADINGAGENTS_QUICK_THINK_LLM: deepseek-flash

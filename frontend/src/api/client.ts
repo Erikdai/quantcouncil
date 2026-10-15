@@ -1,4 +1,7 @@
 import type {
+  ExportFormat,
+  ExportLang,
+  HoldingIn,
   ApprovalRequest,
   DocumentOut,
   ErrorBody,
@@ -140,6 +143,38 @@ export async function request<T>(path: string, opts: RequestOptions = {}): Promi
   }
 }
 
+/** File name from Content-Disposition, preferring the RFC 5987 `filename*=UTF-8''…` form. */
+export function filenameFromDisposition(header: string | null): string | null {
+  if (!header) return null
+  const star = /filename\*\s*=\s*UTF-8''([^;]+)/i.exec(header)
+  if (star?.[1]) {
+    try {
+      return decodeURIComponent(star[1].trim())
+    } catch {
+      // malformed escape: fall back to the plain filename
+    }
+  }
+  return /filename\s*=\s*"?([^";]+)"?/i.exec(header)?.[1]?.trim() ?? null
+}
+
+/** GET a file and save it via a temporary object URL; resolves with the file name. */
+export async function downloadFile(path: string, query?: Query): Promise<string> {
+  const res = await rawFetch(buildUrl(path, query))
+  if (!res.ok) throw await errorFromResponse(res)
+  const blob = await res.blob()
+  const name = filenameFromDisposition(res.headers.get('Content-Disposition')) ?? 'report'
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  // Revoke later: some browsers read the URL asynchronously after click().
+  setTimeout(() => URL.revokeObjectURL(url), 30_000)
+  return name
+}
+
 export function errorMessage(err: unknown): string {
   if (err instanceof Error) return err.message
   return typeof err === 'string' ? err : translate('error.unknown')
@@ -171,6 +206,31 @@ export const api = {
     request<OrderOut[]>('/portfolio/orders', { query: { limit }, signal }),
   resetPortfolio: (initialCash: number) =>
     request<PortfolioOut>('/portfolio/reset', { method: 'POST', body: { initial_cash: initialCash } }),
+  /** Enter or edit a holding the user already owns (no cash moves; quantity 0 removes it). */
+  setHolding: (ticker: string, body: HoldingIn, accountId = 'default') =>
+    request<PortfolioOut>(`/portfolio/positions/${enc(ticker)}`, {
+      method: 'PUT',
+      body,
+      query: { account_id: accountId },
+    }),
+  removeHolding: (ticker: string, accountId = 'default') =>
+    request<PortfolioOut>(`/portfolio/positions/${enc(ticker)}`, {
+      method: 'DELETE',
+      query: { account_id: accountId },
+    }),
+  setCash: (cash: number, accountId = 'default') =>
+    request<PortfolioOut>('/portfolio/cash', { method: 'PUT', body: { cash }, query: { account_id: accountId } }),
+
+  // exports (files)
+  exportDaily: (params: { format: ExportFormat; lang: ExportLang; day?: string | null; accountId?: string }) =>
+    downloadFile('/reports/daily', {
+      format: params.format,
+      lang: params.lang,
+      day: params.day,
+      account_id: params.accountId ?? 'default',
+    }),
+  exportRun: (id: string, params: { format: ExportFormat; lang: ExportLang }) =>
+    downloadFile(`/runs/${enc(id)}/report`, { format: params.format, lang: params.lang }),
 
   // market data
   kline: (ticker: string, start: string, end: string, signal?: AbortSignal) =>

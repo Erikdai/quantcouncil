@@ -1,6 +1,6 @@
-# FinAgent Web
+# QuantCouncil Web
 
-Web console for FinAgent, a multi-agent LLM research and paper-trading platform for China A-shares.
+Web console for QuantCouncil, a multi-agent LLM research and paper-trading platform for China A-shares.
 
 Vite · React 19 · TypeScript (strict) · Tailwind CSS v4 · TanStack Query v5 · React Router v7 · lightweight-charts v5 · react-markdown
 
@@ -36,14 +36,14 @@ npm run preview    # serve dist/ (also proxies /api)
 Multi-stage image: `node:22-alpine` builds, `nginx:1.27-alpine` serves `dist/` with SPA fallback and proxies `/api/` to `http://api:8000` (SSE-safe: no buffering, 1 h read timeout).
 
 ```bash
-docker build -t finagent-web .
-docker run -p 8080:80 --network <compose-network> finagent-web   # needs a service named `api`
+docker build -t quantcouncil-web .
+docker run -p 8080:80 --network <compose-network> quantcouncil-web   # needs a service named `api`
 ```
 
 ## Layout
 
 ```
-src/api         types.ts (mirrors finagent/api/schemas.py), client.ts, sse.ts (SSE parser, useRunEvents, streamChat)
+src/api         types.ts (mirrors quantcouncil/api/schemas.py), client.ts, sse.ts (SSE parser, useRunEvents, streamChat)
 src/i18n        zh.ts / en.ts dictionaries (same typed key set), store + I18nProvider / useT()
 src/hooks       React Query hooks, useRunView (persisted run + live events), useResearchChat
 src/components  ui/, common/ (Markdown, candles, badges), layout/, dashboard/, run/, research/
