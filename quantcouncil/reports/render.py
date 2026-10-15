@@ -72,11 +72,10 @@ def to_docx(report: Report) -> bytes:
 @lru_cache(maxsize=1)
 def _styles():
     from reportlab.lib.colors import Color  # noqa: PLC0415
+    from reportlab.lib.fonts import addMapping  # noqa: PLC0415
     from reportlab.lib.styles import ParagraphStyle  # noqa: PLC0415
     from reportlab.pdfbase import pdfmetrics  # noqa: PLC0415
     from reportlab.pdfbase.cidfonts import UnicodeCIDFont  # noqa: PLC0415
-
-    from reportlab.lib.fonts import addMapping  # noqa: PLC0415
 
     pdfmetrics.registerFont(UnicodeCIDFont("STSong-Light"))  # ships with ReportLab; no font files needed
     for bold in (0, 1):
@@ -120,9 +119,15 @@ def to_pdf(report: Report) -> bytes:
     from reportlab.lib import colors  # noqa: PLC0415
     from reportlab.lib.pagesizes import A4  # noqa: PLC0415
     from reportlab.lib.units import mm  # noqa: PLC0415
-    from reportlab.platypus import ListFlowable, ListItem, Paragraph, SimpleDocTemplate, Spacer  # noqa: PLC0415
-    from reportlab.platypus import Table as PdfTable  # noqa: PLC0415
-    from reportlab.platypus import TableStyle  # noqa: PLC0415
+    from reportlab.platypus import (  # noqa: PLC0415
+        ListFlowable,
+        ListItem,
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+        Table as PdfTable,
+        TableStyle,
+    )
 
     s = _styles()
     story = [Paragraph(_markup([(report.title, False)]), s["title"]),

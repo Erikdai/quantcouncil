@@ -6,7 +6,15 @@ from datetime import date, datetime
 
 from quantcouncil.api.schemas import PortfolioOut
 from quantcouncil.db.models import Order, Run
-from quantcouncil.reports.document import Bullets, Heading, Para, Report, Table, markdown_blocks, text
+from quantcouncil.reports.document import (
+    Bullets,
+    Heading,
+    Para,
+    Report,
+    Table,
+    markdown_blocks,
+    text,
+)
 
 L = {
     "zh": {
