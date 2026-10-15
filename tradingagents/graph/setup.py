@@ -23,7 +23,7 @@ from tradingagents.agents import (
 from tradingagents.agents.analysts.turn import WRAP_UP
 from tradingagents.agents.state import AgentState
 
-from .analyst_execution import build_analyst_execution_plan
+from .analyst_execution import EXTRA_ANALYST_FACTORIES, build_analyst_execution_plan
 from .conditional_logic import ConditionalLogic
 
 logger = logging.getLogger(__name__)
@@ -128,6 +128,8 @@ class GraphSetup:
             "news": lambda: create_news_analyst(self.quick_thinking_llm),
             "fundamentals": lambda: create_fundamentals_analyst(self.quick_thinking_llm),
         }
+        for key, factory in EXTRA_ANALYST_FACTORIES.items():
+            analyst_factories.setdefault(key, lambda f=factory: f(self.quick_thinking_llm))
 
         bull_researcher_node = create_bull_researcher(self.quick_thinking_llm)
         bear_researcher_node = create_bear_researcher(self.quick_thinking_llm)

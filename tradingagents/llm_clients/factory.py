@@ -148,5 +148,10 @@ def create_tier_client(config: dict, tier: str, **extra) -> BaseLLMClient:
     else:
         base_url = config.get(f"{tier}_think_backend_url")
     kwargs = build_llm_kwargs({**config, "llm_provider": provider})
+    # An explicit key (e.g. one a user saved in a UI) wins over the provider's env var.
+    api_key = config.get(f"{tier}_think_api_key") or (
+        config.get("api_key") if provider == config["llm_provider"].lower() else None)
+    if api_key:
+        kwargs["api_key"] = api_key
     return create_llm_client(provider=provider, model=config[f"{tier}_think_llm"], base_url=base_url,
                              **kwargs, **extra)

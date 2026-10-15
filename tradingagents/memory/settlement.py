@@ -5,10 +5,20 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 
+from tradingagents.dataflows.router import cn_market_active
 from tradingagents.dataflows.symbols import normalize_symbol
-from tradingagents.dataflows.vendors.yahoo.market import get_closes
+from tradingagents.dataflows.vendors.cn.market import get_cn_closes
+from tradingagents.dataflows.vendors.yahoo.market import get_closes as get_yahoo_closes
 
 logger = logging.getLogger(__name__)
+
+
+def get_closes(symbol: str, start_date: str, end_date: str):
+    """Daily closes from the run's price vendor: the China vendors for an A-share
+    symbol in an A-share run (CSI 300 included), Yahoo otherwise."""
+    if cn_market_active(symbol):
+        return get_cn_closes(symbol, start_date, end_date)
+    return get_yahoo_closes(symbol, start_date, end_date)
 
 
 def resolve_benchmark(ticker: str, config: dict) -> str:

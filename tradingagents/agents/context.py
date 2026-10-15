@@ -6,6 +6,8 @@ from collections.abc import Mapping
 from typing import Any
 
 from tradingagents.dataflows.date_window import is_historical
+from tradingagents.dataflows.router import cn_market_active
+from tradingagents.dataflows.vendors.cn.fundamentals import get_cn_profile
 from tradingagents.dataflows.vendors.yahoo.fundamentals import get_company_profile
 
 logger = logging.getLogger(__name__)
@@ -76,16 +78,33 @@ def resolve_instrument_identity(ticker: str) -> dict:
     (``XAUUSD`` -> ``GC=F``, #983).
     """
     try:
-        return _identity(ticker)
+        return _identity(ticker, cn_market_active(ticker))
     except Exception as exc:  # noqa: BLE001 — fail open, never block the run
         logger.debug("Could not resolve instrument identity for %s: %s", ticker, exc)
         return {}
 
 
+def _cn_profile_info(ticker: str) -> dict:
+    """The cninfo profile in the field names the Yahoo profile uses."""
+    profile = get_cn_profile(ticker)
+    return {
+        "longName": profile.get("公司名称"),
+        "shortName": profile.get("A股简称"),
+        "sector": profile.get("所属行业"),
+        "industry": profile.get("主营业务"),
+        "exchange": profile.get("所属市场"),
+        "quoteType": "EQUITY",
+    }
+
+
 @functools.lru_cache(maxsize=256)
-def _identity(ticker: str) -> dict:
-    """The vendor's identity fields for ``ticker``; raises if the lookup fails."""
-    info = get_company_profile(ticker)
+def _identity(ticker: str, cn: bool = False) -> dict:
+    """The vendor's identity fields for ``ticker``; raises if the lookup fails.
+
+    ``cn`` selects the A-share profile (cninfo); it is part of the cache key
+    because the same symbol resolves differently under a Yahoo-configured run.
+    """
+    info = _cn_profile_info(ticker) if cn else get_company_profile(ticker)
     identity: dict[str, str] = {}
     company_name = _clean_identity_value(info.get("longName")) or _clean_identity_value(
         info.get("shortName")

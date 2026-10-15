@@ -11,8 +11,12 @@ from langgraph.prebuilt import InjectedState
 
 from tradingagents.dataflows.date_window import as_of, as_of_window
 from tradingagents.dataflows.errors import NoMarketDataError, VendorUnavailableError
-from tradingagents.dataflows.router import no_data_available, route_to_vendor, vendor_unavailable
-from tradingagents.dataflows.vendors.yahoo.snapshot import build_verified_market_snapshot
+from tradingagents.dataflows.router import (
+    no_data_available,
+    route_to_vendor,
+    vendor_unavailable,
+    verified_snapshot,
+)
 
 
 @tool
@@ -87,7 +91,7 @@ def get_verified_market_snapshot(
     """
     # An exception out of a tool would end the run.
     try:
-        return build_verified_market_snapshot(symbol, as_of(curr_date, trade_date), look_back_days)
+        return verified_snapshot(symbol, as_of(curr_date, trade_date), look_back_days)
     except VendorUnavailableError as exc:
         return vendor_unavailable("get_verified_market_snapshot", exc)
     except NoMarketDataError as exc:
@@ -237,7 +241,8 @@ def get_macro_indicators(
         "'unemployment', 'fed_funds_rate', '10y_treasury', 'yield_curve', "
         "'real_gdp', 'vix', euro-area aliases such as 'ecb_deposit_rate', "
         "'euro_hicp', 'euro_core_hicp', 'euro_real_gdp', 'germany_10y', "
-        "'france_10y', 'eur_usd', or a raw FRED series ID such as 'CPIAUCSL'.",
+        "'france_10y', 'eur_usd', a raw FRED series ID such as 'CPIAUCSL', or, "
+        "for China, 'cn_lpr', 'cn_m2', 'cn_cpi', 'cn_pmi'.",
     ],
     curr_date: Annotated[str, "Current date in yyyy-mm-dd format; the end of the window"],
     look_back_days: Annotated[

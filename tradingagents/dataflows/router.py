@@ -17,6 +17,24 @@ from tradingagents.dataflows.vendors.alpha_vantage import (
     get_news as get_alpha_vantage_news,
     get_stock as get_alpha_vantage_stock,
 )
+from tradingagents.dataflows.vendors.cn import CN_VENDOR_NAMES, is_a_share
+from tradingagents.dataflows.vendors.cn.fundamentals import (
+    get_cn_balance_sheet,
+    get_cn_cashflow,
+    get_cn_fundamentals,
+    get_cn_income_statement,
+    get_cn_insider_transactions,
+)
+from tradingagents.dataflows.vendors.cn.macro import get_cn_macro
+from tradingagents.dataflows.vendors.cn.market import (
+    build_cn_snapshot,
+    build_cn_snapshot_baostock,
+    get_cn_indicator_window,
+    get_cn_indicator_window_baostock,
+    get_cn_stock_data,
+    get_cn_stock_data_baostock,
+)
+from tradingagents.dataflows.vendors.cn.news import get_cn_global_news, get_cn_news
 from tradingagents.dataflows.vendors.fred import get_macro_data as get_fred_macro_data
 from tradingagents.dataflows.vendors.polymarket import (
     get_prediction_markets as get_polymarket_prediction_markets,
@@ -38,6 +56,7 @@ from tradingagents.dataflows.vendors.yahoo.market import (
     get_YFin_data_online,
 )
 from tradingagents.dataflows.vendors.yahoo.news import get_global_news_yfinance, get_news_yfinance
+from tradingagents.dataflows.vendors.yahoo.snapshot import build_verified_market_snapshot
 
 logger = logging.getLogger(__name__)
 
@@ -99,54 +118,104 @@ VENDOR_METHODS = {
     "get_stock_data": {
         "alpha_vantage": get_alpha_vantage_stock,
         "yfinance": get_YFin_data_online,
+        "akshare": get_cn_stock_data,
+        "baostock": get_cn_stock_data_baostock,
     },
     # technical_indicators
     "get_indicators": {
         "alpha_vantage": get_alpha_vantage_indicator,
         "yfinance": get_stock_stats_indicators_window,
+        "akshare": get_cn_indicator_window,
+        "baostock": get_cn_indicator_window_baostock,
     },
     # fundamental_data
     "get_fundamentals": {
         "alpha_vantage": get_alpha_vantage_fundamentals,
         "yfinance": get_yfinance_fundamentals,
+        "akshare": get_cn_fundamentals,
     },
     "get_balance_sheet": {
         "alpha_vantage": get_alpha_vantage_balance_sheet,
         "sec_edgar": get_sec_edgar_balance_sheet,
         "yfinance": get_yfinance_balance_sheet,
+        "akshare": get_cn_balance_sheet,
     },
     "get_cashflow": {
         "alpha_vantage": get_alpha_vantage_cashflow,
         "sec_edgar": get_sec_edgar_cashflow,
         "yfinance": get_yfinance_cashflow,
+        "akshare": get_cn_cashflow,
     },
     "get_income_statement": {
         "alpha_vantage": get_alpha_vantage_income_statement,
         "sec_edgar": get_sec_edgar_income_statement,
         "yfinance": get_yfinance_income_statement,
+        "akshare": get_cn_income_statement,
     },
     # news_data
     "get_news": {
         "alpha_vantage": get_alpha_vantage_news,
         "yfinance": get_news_yfinance,
+        "akshare": get_cn_news,
     },
     "get_global_news": {
         "yfinance": get_global_news_yfinance,
         "alpha_vantage": get_alpha_vantage_global_news,
+        "akshare": get_cn_global_news,
     },
     "get_insider_transactions": {
         "alpha_vantage": get_alpha_vantage_insider_transactions,
         "yfinance": get_yfinance_insider_transactions,
+        "akshare": get_cn_insider_transactions,
     },
     # macro_data
     "get_macro_indicators": {
         "fred": get_fred_macro_data,
+        "akshare": get_cn_macro,
     },
     # prediction_markets
     "get_prediction_markets": {
         "polymarket": get_polymarket_prediction_markets,
     },
 }
+
+
+# A-share builders for the verified snapshot, by vendor name. The snapshot is
+# not routed through VENDOR_METHODS: it is the analyst's source of truth, so it
+# is built from bars, never from a vendor's prose.
+_CN_SNAPSHOT_BUILDERS = {"akshare": build_cn_snapshot, "baostock": build_cn_snapshot_baostock}
+
+
+def cn_vendors_for(category: str, method: str | None = None) -> list[str]:
+    """The China vendors configured for a category, in chain order."""
+    chain = [v.strip() for v in get_vendor(category, method).split(",")]
+    return [v for v in chain if v in CN_VENDOR_NAMES]
+
+
+def cn_market_active(symbol: str) -> bool:
+    """Whether this run serves ``symbol`` from the China vendors.
+
+    True for an A-share symbol when the price vendors include a China vendor; a
+    run configured for Yahoo keeps resolving ``600519.SS`` through Yahoo.
+    """
+    return is_a_share(symbol) and bool(cn_vendors_for("core_stock_apis"))
+
+
+def verified_snapshot(symbol: str, as_of_date: str, look_back_days: int = 30) -> str:
+    """The verified market snapshot from the run's price vendor for this symbol.
+
+    Raises the vendor error types for the caller to turn into a sentinel.
+    """
+    if cn_market_active(symbol):
+        last: Exception | None = None
+        for vendor in cn_vendors_for("core_stock_apis"):
+            try:
+                return _CN_SNAPSHOT_BUILDERS[vendor](symbol, as_of_date, look_back_days)
+            except (VendorUnavailableError, NoMarketDataError) as exc:
+                logger.warning("Snapshot vendor %r failed for %s: %s", vendor, symbol, exc)
+                last = exc
+        raise last  # type: ignore[misc]
+    return build_verified_market_snapshot(symbol, as_of_date, look_back_days)
 
 
 def get_category_for_method(method: str) -> str:

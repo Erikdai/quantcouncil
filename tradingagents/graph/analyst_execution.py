@@ -1,5 +1,6 @@
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
+from typing import Any
 
 from tradingagents.agents.analysts import fundamentals_analyst, market_analyst, news_analyst
 
@@ -44,6 +45,22 @@ ANALYST_NODE_SPECS: dict[str, AnalystNodeSpec] = {
         tools=fundamentals_analyst.TOOLS,
     ),
 }
+
+
+# Analysts registered from outside the core (e.g. a market-specific analyst whose
+# tools come from an MCP server): key -> factory taking the quick-think LLM.
+EXTRA_ANALYST_FACTORIES: dict[str, Callable[[Any], Callable]] = {}
+
+
+def register_analyst(spec: AnalystNodeSpec, factory: Callable[[Any], Callable]) -> None:
+    """Add an analyst the graph can select by ``spec.key``.
+
+    ``spec.report_key`` must be a key of ``AgentState`` that the downstream
+    agents read (e.g. ``sentiment_report``), so the new analyst slots into the
+    debate without changing it.
+    """
+    ANALYST_NODE_SPECS[spec.key] = spec
+    EXTRA_ANALYST_FACTORIES[spec.key] = factory
 
 
 def build_analyst_execution_plan(
