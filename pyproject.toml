@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "tradingagents"
+name = "fin-agent"
 dynamic = ["version"]
-description = "TradingAgents: Multi-Agents LLM Financial Trading Framework"
+description = "FinAgent: A-share multi-agent LLM research and paper-trading platform, built on TradingAgents"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -39,19 +39,56 @@ dev = [
 bedrock = [
     "langchain-aws>=1.7.9",
 ]
+# China A-share market data (AKShare: Sina/Tencent/Eastmoney/cninfo/Cailian; BaoStock).
+cn = [
+    "akshare>=1.19.1",
+    "baostock>=0.9.4",
+]
+# The FinAgent platform: API, workers, MCP server, RAG, memory, observability.
+platform = [
+    "fin-agent[cn]",
+    "fastapi>=0.143.1",
+    "uvicorn[standard]>=0.54.0",
+    "sse-starlette>=3.5.0",
+    "pydantic-settings>=2.16.0",
+    "sqlalchemy[asyncio]>=2.1.4",
+    "alembic>=1.20.0",
+    "psycopg[binary,pool]>=3.3.6",
+    "pgvector>=0.5.1",
+    "langgraph-checkpoint-postgres>=3.2.0",
+    "redis>=8.1.0",
+    "taskiq>=0.13.0",
+    "taskiq-redis>=1.2.4",
+    "mcp>=1.30,<2",
+    "langchain-mcp-adapters>=0.3.2",
+    "langfuse>=5.0.1",
+    "fastembed>=0.9.0",
+    "jieba>=0.42.1",
+    "pypdf>=6.0",
+    "httpx>=0.28.1",
+    "cryptography>=45",
+]
+platform-dev = [
+    "fin-agent[platform,dev]",
+    "pytest-asyncio>=1.4.0",
+    "fakeredis>=2.40.0",
+]
 
 [project.scripts]
 tradingagents = "cli.main:app"
+finagent-mcp = "finagent.mcp_server.server:main"
+finagent-eval = "finagent.evals.__main__:main"
 
 [tool.setuptools.dynamic]
-version = {attr = "tradingagents.__version__"}
+version = {attr = "finagent.__version__"}
 
 [tool.setuptools.packages.find]
-include = ["tradingagents*", "cli*"]
+include = ["tradingagents*", "cli*", "finagent*"]
 
 [tool.setuptools.package-data]
 cli = ["static/*"]
 tradingagents = ["assets/*.svg"]
+finagent = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -60,7 +97,10 @@ markers = [
     "unit: fast isolated unit tests",
     "integration: tests requiring external services; run only when asked for, with -m integration",
     "smoke: quick sanity-check tests",
+    "postgres: tests that need the Postgres from docker compose (FINAGENT_TEST_DATABASE_URL)",
 ]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [
     "ignore::DeprecationWarning",
 ]
