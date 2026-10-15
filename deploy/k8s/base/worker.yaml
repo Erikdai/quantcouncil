@@ -1,0 +1,60 @@
+# Workers are I/O-bound (LLM calls); concurrency per pod comes from --max-async-tasks.
+# A run paused for approval holds no worker: its state is in the Postgres checkpointer
+# and any worker resumes it.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: worker}
+  template:
+    metadata:
+      labels: {app: worker}
+    spec:
+      terminationGracePeriodSeconds: 300
+      containers:
+        - name: worker
+          image: finagent
+          command: ["taskiq", "worker", "finagent.worker.broker:broker", "finagent.worker.tasks",
+                    "--workers", "1", "--max-async-tasks", "4"]
+          envFrom:
+            - configMapRef: {name: finagent-config}
+            - secretRef: {name: finagent-secrets}
+          resources:
+            requests: {cpu: 500m, memory: 1Gi}
+            limits: {memory: 3Gi}
+          volumeMounts:
+            - {name: models, mountPath: /models}
+            - {name: data, mountPath: /data}
+      volumes:
+        - name: models
+          persistentVolumeClaim: {claimName: model-cache}
+        - name: data
+          emptyDir: {}
+---
+# Exactly one scheduler, or cron jobs fire twice.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scheduler
+spec:
+  replicas: 1
+  strategy: {type: Recreate}
+  selector:
+    matchLabels: {app: scheduler}
+  template:
+    metadata:
+      labels: {app: scheduler}
+    spec:
+      containers:
+        - name: scheduler
+          image: finagent
+          command: ["taskiq", "scheduler", "finagent.worker.broker:scheduler", "finagent.worker.tasks"]
+          envFrom:
+            - configMapRef: {name: finagent-config}
+            - secretRef: {name: finagent-secrets}
+          resources:
+            requests: {cpu: 50m, memory: 256Mi}
+            limits: {memory: 512Mi}

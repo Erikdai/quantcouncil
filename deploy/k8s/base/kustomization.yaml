@@ -1,0 +1,27 @@
+# kubectl apply -k deploy/k8s/base
+# For production, swap the in-cluster Postgres/Redis for managed services
+# (set FINAGENT_DATABASE_URL / FINAGENT_REDIS_URL in the secret) and drop infra.yaml.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: finagent
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - infra.yaml
+  - migrate-job.yaml
+  - mcp.yaml
+  - api.yaml
+  - worker.yaml
+  - web.yaml
+  - ingress.yaml
+secretGenerator:
+  - name: finagent-secrets
+    envs:
+      - secrets.env   # copy secrets.env.example -> secrets.env (git-ignored)
+images:
+  - name: finagent
+    newName: ghcr.io/your-org/finagent
+    newTag: latest
+  - name: finagent-web
+    newName: ghcr.io/your-org/finagent-web
+    newTag: latest

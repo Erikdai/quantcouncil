@@ -1,0 +1,40 @@
+# The cn-market MCP server runs stateless (stateless_http=True), so it scales horizontally.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: mcp}
+  template:
+    metadata:
+      labels: {app: mcp}
+    spec:
+      containers:
+        - name: mcp
+          image: finagent
+          command: ["python", "-m", "finagent.mcp_server", "--transport", "streamable-http",
+                    "--host", "0.0.0.0", "--port", "8001"]
+          envFrom:
+            - configMapRef: {name: finagent-config}
+            - secretRef: {name: finagent-secrets}
+          ports: [{containerPort: 8001}]
+          readinessProbe:
+            httpGet: {path: /healthz, port: 8001}
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 200m, memory: 512Mi}
+            limits: {memory: 2Gi}
+          volumeMounts: [{name: models, mountPath: /models}]
+      volumes:
+        - name: models
+          persistentVolumeClaim: {claimName: model-cache}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp
+spec:
+  selector: {app: mcp}
+  ports: [{port: 8001}]
