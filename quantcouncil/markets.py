@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import copy
 import os
+import re
 from dataclasses import dataclass
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, time, timedelta
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from tradingagents.dataflows.vendors.cn import (
     CN_BENCHMARK_MAP,
@@ -48,7 +51,10 @@ def resolve_instrument(raw: str) -> Instrument:
         raise ValueError("ticker is empty")
     if is_a_share(text):
         return Instrument(canonical_symbol(text), CN)
-    return Instrument(text.upper(), US)
+    text = text.upper().replace(".", "-") if re.fullmatch(r"[A-Za-z]{1,5}\.[A-Za-z]", text) else text.upper()
+    if not re.fullmatch(r"[A-Z]{1,6}(?:-[A-Z])?", text):
+        raise ValueError("Enter an A-share code or a US stock/ETF ticker, e.g. AAPL, NVDA, BRK-B")
+    return Instrument(text, US)
 
 
 def display_name(instrument: Instrument) -> str | None:
@@ -75,12 +81,33 @@ def core_analysts(market: str, requested: list[str] | None) -> list[str]:
     return list(dict.fromkeys(keys))
 
 
-def latest_trading_day(market: str, today: date | None = None) -> date:
-    """The most recent completed session date (weekday fallback when offline).
+@lru_cache(maxsize=1)
+def _us_calendar():
+    import pandas_market_calendars as calendars  # noqa: PLC0415
+
+    return calendars.get_calendar("NYSE")
+
+
+def latest_trading_day(market: str, today: date | None = None, *, now: datetime | None = None) -> date:
+    """The most recent completed session date.
 
     For A-shares the CSI 300's last bar is the authority, so exchange holidays
-    (Spring Festival, National Day) are handled without a calendar table.
+    (Spring Festival, National Day) are handled without a calendar table, with
+    a weekday fallback offline. US equities use the NYSE calendar's UTC closes,
+    including holidays, DST and early closes. An explicit today means end of
+    that New York date; otherwise now must be timezone-aware.
     """
+    if market == US:
+        instant = now or (datetime.combine(today, time.max, ZoneInfo("America/New_York"))
+                          if today else datetime.now(UTC))
+        if instant.tzinfo is None:
+            raise ValueError("now must include a timezone")
+        local_day = instant.astimezone(ZoneInfo("America/New_York")).date()
+        schedule = _us_calendar().schedule(start_date=local_day - timedelta(days=30), end_date=local_day)
+        completed = schedule[schedule["market_close"] <= instant]
+        if completed.empty:
+            raise ValueError("No completed US market session in the last 30 days")
+        return completed.index[-1].date()
     today = today or date.today()
     if market == CN:
         try:

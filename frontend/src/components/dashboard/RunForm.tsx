@@ -15,6 +15,9 @@ const QUICK_PICKS = [
   { ticker: '600519', name: 'quick.600519' },
   { ticker: '000001.SZ', name: 'quick.000001' },
   { ticker: '300750', name: 'quick.300750' },
+  { ticker: 'AAPL', name: 'quick.AAPL' },
+  { ticker: 'NVDA', name: 'quick.NVDA' },
+  { ticker: 'MSFT', name: 'quick.MSFT' },
 ] as const
 
 /** Nudge to enter holdings when the account is empty, so decisions account for the real book. */
@@ -72,6 +75,7 @@ export function RunForm({ ticker, onTickerChange, tickerRef }: RunFormProps) {
   const [submitted, setSubmitted] = useState(false)
   const create = useCreateRun()
   const navigate = useNavigate()
+  const isUs = /^[A-Za-z]{1,6}(?:[.-][A-Za-z])?$/.test(ticker.trim())
 
   const tickerError = submitted && !ticker.trim() ? t('runForm.tickerRequired') : null
   const analystError = analysts.length === 0 ? t('runForm.analystsRequired') : null
@@ -87,7 +91,7 @@ export function RunForm({ ticker, onTickerChange, tickerRef }: RunFormProps) {
     setSubmitted(true)
     if (!ticker.trim() || analysts.length === 0) return
     create.mutate(
-      { ticker: ticker.trim(), trade_date: date || null, analysts, auto_approve: autoApprove },
+      { ticker: ticker.trim(), trade_date: date || null, analysts, auto_approve: !isUs && autoApprove },
       { onSuccess: (run) => navigate(`/runs/${run.id}`) },
     )
   }
@@ -98,7 +102,7 @@ export function RunForm({ ticker, onTickerChange, tickerRef }: RunFormProps) {
       <CardBody>
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-            <Field label={t('runForm.ticker')} htmlFor={ids.ticker} error={tickerError} hint="600519 / 000001.SZ / 300750">
+            <Field label={t('runForm.ticker')} htmlFor={ids.ticker} error={tickerError} hint="600519 / 000001.SZ / AAPL / NVDA / BRK-B">
               <Input
                 id={ids.ticker}
                 ref={tickerRef}
@@ -144,7 +148,7 @@ export function RunForm({ ticker, onTickerChange, tickerRef }: RunFormProps) {
                   <button
                     key={key}
                     type="button"
-                    title={`${key}: ${t(`analyst.${key}.hint`)}`}
+                    title={`${key}: ${t(isUs && key === 'sentiment' ? 'analyst.usSentiment.hint' : `analyst.${key}.hint`)}`}
                     aria-pressed={on}
                     onClick={() => toggle(key)}
                     className={cn(
@@ -155,7 +159,7 @@ export function RunForm({ ticker, onTickerChange, tickerRef }: RunFormProps) {
                     )}
                   >
                     {on && <Check className="size-3.5" />}
-                    {t(`analyst.${key}`)}
+                    {t(isUs && key === 'sentiment' ? 'analyst.social' : `analyst.${key}`)}
                   </button>
                 )
               })}
@@ -163,15 +167,15 @@ export function RunForm({ ticker, onTickerChange, tickerRef }: RunFormProps) {
             {analystError && <p className="mt-1 text-xs text-up">{analystError}</p>}
           </fieldset>
 
-          <Switch
+          {isUs ? <p className="text-xs leading-relaxed text-muted">{t('runForm.usScope')}</p> : <Switch
             id={ids.auto}
             checked={autoApprove}
             onChange={setAutoApprove}
             label={t('runForm.autoApprove')}
             description={t('runForm.autoApproveDesc')}
-          />
+          />}
 
-          <HoldingsHint />
+          {!isUs && <HoldingsHint />}
           <ModelLine />
 
           <Button

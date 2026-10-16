@@ -130,3 +130,7 @@ Dai Cheng Xiao（[@Erikdai](https://github.com/Erikdai)）
 ## 许可证
 
 [Apache License 2.0](LICENSE)
+
+## 问题驱动的专题投研
+
+新增“专题投研”页面：围绕单家美股公司的具体问题检索 SEC 财报全文和财务数据，保存带逐字引文的报告、代码计算与研究过程。支持停止、重试和下载。详见 [使用与验证说明](DEEP_RESEARCH.md)。

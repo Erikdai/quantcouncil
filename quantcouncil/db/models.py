@@ -209,3 +209,27 @@ class AppSetting(Base):
     value: Mapped[dict[str, Any]] = mapped_column(JSONB)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(),
                                                  onupdate=func.now())
+
+
+class ResearchJob(TimestampMixin, Base):
+    """One question, its pinned model settings, evidence snapshots and final report."""
+
+    __tablename__ = 'research_jobs'
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    ticker: Mapped[str] = mapped_column(String(32), index=True)
+    question: Mapped[str] = mapped_column(Text)
+    as_of: Mapped[date] = mapped_column(Date)
+    language: Mapped[str] = mapped_column(String(8))
+    status: Mapped[str] = mapped_column(String(24), index=True)
+    stage: Mapped[str] = mapped_column(Text)
+    plan: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    report: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    sources: Mapped[list[Any]] = mapped_column(JSONB, default=list)
+    events: Mapped[list[Any]] = mapped_column(JSONB, default=list)
+    model: Mapped[dict[str, Any]] = mapped_column(JSONB, default=dict)
+    verification: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    manifest: Mapped[list[Any]] = mapped_column(JSONB, default=list)
+    warnings: Mapped[list[Any]] = mapped_column(JSONB, default=list)
+    error: Mapped[str | None] = mapped_column(Text)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

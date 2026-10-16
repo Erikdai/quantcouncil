@@ -9,6 +9,7 @@ import { useT } from '@/i18n/I18nProvider'
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'))
 const RunPage = lazy(() => import('@/pages/RunPage'))
 const PortfolioPage = lazy(() => import('@/pages/PortfolioPage'))
+const DeepResearchPage = lazy(() => import('@/pages/DeepResearchPage'))
 const ResearchPage = lazy(() => import('@/pages/ResearchPage'))
 const SkillsPage = lazy(() => import('@/pages/SkillsPage'))
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'))
@@ -61,6 +62,8 @@ export const router = createBrowserRouter([
       { path: 'runs/:id', element: <RunPage /> },
       { path: 'portfolio', element: <PortfolioPage /> },
       { path: 'research', element: <ResearchPage /> },
+      { path: 'deep-research', element: <DeepResearchPage /> },
+      { path: 'deep-research/:id', element: <DeepResearchPage /> },
       { path: 'skills', element: <SkillsPage /> },
       { path: 'skills/:name', element: <SkillsPage /> },
       { path: 'settings', element: <SettingsPage /> },
