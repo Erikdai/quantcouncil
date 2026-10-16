@@ -18,12 +18,14 @@ from quantcouncil.deep_research.generation import structured
 from quantcouncil.deep_research.review import review_report
 from quantcouncil.deep_research.schemas import Evidence, ResearchPlan, ResearchReport
 from quantcouncil.deep_research.sec import FilingCorpus, download_filing, list_filings
+from quantcouncil.deep_research.segments import operating_income_facts, profit_contributions
 from quantcouncil.markets import Instrument, agent_config
 from tradingagents.dataflows.config import run_config
 from tradingagents.dataflows.vendors import sec_edgar
 from tradingagents.llm_clients import create_tier_client
 
-SYSTEM = """You are an equity research analyst answering ONE specific research question using SEC primary evidence.
+SYSTEM = """The report UI and Markdown export explicitly label monetary figures as USD million unless another unit is explicitly stated. Interpret bare monetary values on that basis when checking scale.
+You are an equity research analyst answering ONE specific research question using SEC primary evidence.
 Do not give buy/sell ratings or a price target. Separate facts from inference, counterevidence, unknowns and conditions
 that would change the answer. Do not assume a requested product/business metric is separately disclosed.
 You can conclude that the question is not answerable from available disclosures. FCF = operating cash flow minus
@@ -46,7 +48,7 @@ A well-evidenced negative answer is supported. Use insufficient when available e
 Answer citations must support every number in the answer itself; citations in other findings do not count.
 Unknowns and conditions must omit non-date numeric quantities (including forecast horizons); place them in a cited finding instead.
 Never put uncited factual numbers in the title, unknowns or hypothetical conditions; put factual assertions
-in cited findings. A majority of profit level does not establish a majority of profit improvement. Other segments improving does not prove a segment is not the main driver. Compare changes, not just levels. When recent interim and annual evidence are both available, assess each window separately; do not generalize an annual answer to the latest interim period. If no code calculation quantifies contributions, qualify the answer rather than assert a majority or its negation. A funding
+in cited findings. A majority of profit level does not establish a majority of profit improvement. Other segments improving does not prove a segment is not the main driver. Define ambiguous main-driver language: the largest individual contribution is different from contributing over half of the total. A contribution below half does not prove it is not the main driver; report both distinctions and the period explicitly. Compare changes, not just levels. When recent interim and annual evidence are both available, assess each window separately; do not generalize an annual answer to the latest interim period. If no code calculation quantifies contributions, qualify the answer rather than assert a majority or its negation. A funding
 gap does not establish incremental borrowing. Credit revenue is not net profit. Preserve these distinctions.
 """
 
@@ -60,6 +62,20 @@ def validate_report(report: ResearchReport, sources: dict[str, Evidence]) -> dic
         return re.sub(r"\s+", " ", text).strip()
 
     def numbers(text):
+        # Explicit, valid report finding references are document structure,
+        # not financial quantities. Invalid ordinals remain checkable numbers.
+        text = re.sub(
+            r"(?:发现|finding)\s*(\d{1,2}(?:\s*[、和及,]\s*(?:(?:发现|finding)\s*)?\d{1,2})*)(?!\d)(?=\s*(?:[）)、。,;：:]|$))",
+            lambda match: (
+                ""
+                if all(
+                    1 <= int(n) <= len(report.findings) for n in re.findall(r"\d+", match.group(1))
+                )
+                else match.group(0)
+            ),
+            text,
+            flags=re.I,
+        )
         accounting_negatives = {
             -Decimal(value.replace(",", ""))
             for value in re.findall(r"\(\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s*\)", text)
@@ -115,7 +131,9 @@ def validate_report(report: ResearchReport, sources: dict[str, Evidence]) -> dic
         calendar_years = {
             Decimal(next(value for value in match if value))
             for match in re.findall(
-                r"((?:19|20)\d{2})\s*(?:财年|年度|日历年|自然年|年)|\bFY\s*((?:19|20)\d{2})\b", finding.text, re.I
+                r"((?:19|20)\d{2})\s*(?:财年|年度|日历年|自然年|年)|\bFY\s*((?:19|20)\d{2})\b",
+                finding.text,
+                re.I,
             )
         }
         # Comparative column years can sit in the same source's table heading,
@@ -184,7 +202,7 @@ def validate_report(report: ResearchReport, sources: dict[str, Evidence]) -> dic
         "passed": not errors,
         "citations_checked": count,
         "errors": errors,
-        "version": "source_quote_numeric_v6",
+        "version": "source_quote_numeric_v7",
         "scope": "Source IDs, exact quotes and numeric occurrence checked; this is not independent verification of the inference.",
     }
 
@@ -361,9 +379,9 @@ async def research(
         def calculate_financials(
             left_id: str,
             right_id: str,
-            operation: Literal["growth_pct", "ratio_pct", "difference", "sum"],
+            operation: Literal["growth_pct", "change", "ratio_pct", "difference", "sum"],
         ) -> str:
-            """Calculate from financial IDs or derived monetary calculation IDs: growth, same-period ratio, difference or sum.
+            """Calculate from financial IDs or derived monetary calculation IDs: growth, year-on-year monetary change, same-period ratio, difference or sum.
             Cash FCF = OCF minus capex; cash shareholder returns = repurchases plus dividends; coverage residual = FCF minus returns.
             Percentage results cannot be inputs. Returns a source with formula and both input IDs."""
             hit = calculate(sources[left_id], sources[right_id], operation)
@@ -397,6 +415,14 @@ async def research(
             search_filings.invoke({"query": query})
         for metric in plan.metrics:
             get_financial_series.invoke({"metric": metric})
+        if "operating_income" in plan.metrics:
+            segment_facts = []
+            for filing in filings:
+                if any(item["accession"] == filing.accession for item in corpus.manifest):
+                    segment_facts.extend(
+                        await asyncio.to_thread(operating_income_facts, filing, cik)
+                    )
+            sources.update({hit.id: hit for hit in profit_contributions(segment_facts)})
         sources.update({hit.id: hit for hit in standard_comparisons(sources)})
         await persist()
         messages = [

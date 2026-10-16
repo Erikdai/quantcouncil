@@ -507,10 +507,12 @@ def test_calendar_year_wording_is_not_an_uncited_financial_quantity():
         answer={"kind": "inference", "text": "Retrieved evidence does not resolve the question.", "citations": [{"source_id": source.id, "quote": source.content}]},
         findings=[{"kind": "fact", "text": "Revenue as filed: 100 USD million", "citations": [{"source_id": source.id, "quote": source.content}]}] * 2,
         counterarguments=[{"kind": "inference", "text": "Retrieved evidence does not resolve the question.", "citations": [{"source_id": source.id, "quote": source.content}]}],
-        unknowns=["在检索证据中未找到2025日历年全年数据。"],
+        unknowns=["在检索证据中未找到2025日历年全年数据。参见发现1、2。"],
         what_would_change=["若提供2025自然年可比数据，可以扩展比较。"],
     )
     assert validate_report(report, {source.id: source})["passed"]
+    report.unknowns = ["参见发现2、99。"]
+    assert not validate_report(report, {source.id: source})["passed"]
 
 
 def test_signed_residual_can_be_expressed_as_a_positive_shortfall_not_positive_income():

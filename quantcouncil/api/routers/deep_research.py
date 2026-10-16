@@ -125,6 +125,7 @@ async def export_report(job_id: str, session: SessionDep):
         f"\n{job.ticker} | as of {job.as_of} | {job.status}",
         f"\nQuestion: {job.question}",
         f"\nVerdict: {report['verdict']}",
+        "\nMonetary figures default to USD million unless explicitly labelled otherwise.",
     ]
     if job.verification:
         lines.append("\n## Verification")

@@ -125,7 +125,7 @@ def calculate(left: Evidence, right: Evidence, operation: str) -> Evidence:
         raise ValueError("Units must match")
     same_period = (a.get("start"), a["end"]) == (b.get("start"), b["end"])
     x, y = Decimal(a["value"]), Decimal(b["value"])
-    if operation == "growth_pct":
+    if operation in ("growth_pct", "change"):
         if (
             a["metric"] != b["metric"]
             or a["end"] <= b["end"]
@@ -140,9 +140,13 @@ def calculate(left: Evidence, right: Evidence, operation: str) -> Evidence:
             ]
             if abs(spans[0] - spans[1]) > 15:
                 raise ValueError("Reporting durations are not comparable")
-        if y <= 0:
+        if operation == "growth_pct" and y <= 0:
             raise ValueError("Percentage growth from zero/negative baseline is not meaningful")
-        result, unit, formula = (x / y - 1) * 100, "%", "(left / right - 1) * 100"
+        result, unit, formula = (
+            ((x / y - 1) * 100, "%", "(left / right - 1) * 100")
+            if operation == "growth_pct"
+            else ((x - y) / Decimal(1000000), "USD million", "(left - right) / 1000000")
+        )
     elif operation == "ratio_pct":
         if not same_period or y == 0:
             raise ValueError("Ratios require identical reporting periods and a nonzero denominator")
@@ -193,16 +197,18 @@ def calculate(left: Evidence, right: Evidence, operation: str) -> Evidence:
             **(
                 {
                     "basis": {
-                        "metric": f"{operation}({a['metric']},{b['metric']})",
+                        "metric": f"change({a['metric']})"
+                        if operation == "change"
+                        else f"{operation}({a['metric']},{b['metric']})",
                         "unit": "USD",
-                        "value": str(x - y if operation == "difference" else x + y),
+                        "value": str(x + y if operation == "sum" else x - y),
                         "start": a.get("start"),
                         "end": a["end"],
                         "frequency": a.get("frequency"),
                         "cik": a["cik"],
                     }
                 }
-                if operation in ("difference", "sum")
+                if operation in ("difference", "sum", "change")
                 else {}
             ),
         },

@@ -28,6 +28,7 @@ export const en: Messages = {
   "deep.export": "Download report",
   "deep.missing": "Unavailable data",
   "deep.plan": "Research plan",
+  "deep.amountUnit": "Monetary figures default to USD million unless explicitly labelled otherwise.",
   "deep.verdict": "Model assessment of evidence for its answer",
   "deep.findings": "Key findings",
   "deep.counterarguments": "Counterevidence and alternative explanations",

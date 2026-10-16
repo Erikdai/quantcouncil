@@ -130,6 +130,7 @@ export default function DeepResearchPage() {
             {report && <article className="rounded-xl border border-line bg-surface px-5 py-5 sm:px-8">
               <p className="mb-3 text-xs text-muted">{t('deep.verdict')}: <strong className="text-fg">{label(report.verdict)}</strong></p>
               <h2 className="text-xl leading-8 font-semibold">{report.title}</h2>
+              <p className="mt-2 text-xs text-muted">{t('deep.amountUnit')}</p>
               {finding(report.answer, -1)}
               <h3 className="mt-6 text-base font-semibold">{t('deep.findings')}</h3>{report.findings.map(finding)}
               <h3 className="mt-6 text-base font-semibold">{t('deep.counterarguments')}</h3>{report.counterarguments.map(finding)}

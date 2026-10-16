@@ -30,6 +30,7 @@ export const zh = {
   "deep.export": "下载报告",
   "deep.missing": "缺失资料",
   "deep.plan": "研究路径",
+  "deep.amountUnit": "金额默认单位：百万美元（USD million）；明确标注其他单位的数值按其标注。",
   "deep.verdict": "模型对回答的证据判断",
   "deep.findings": "关键发现",
   "deep.counterarguments": "反证与其他解释",
