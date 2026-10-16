@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router'
-import { BookOpen, LayoutDashboard, MessagesSquare, Settings, Wallet, type LucideIcon } from 'lucide-react'
+import { BookOpenCheck, BookOpen, LayoutDashboard, MessagesSquare, Settings, Wallet, type LucideIcon } from 'lucide-react'
 import { SkeletonRows } from '@/components/ui/Feedback'
 import { Toaster } from '@/components/ui/Toaster'
 import { useT } from '@/i18n/I18nProvider'
@@ -21,6 +21,8 @@ interface NavItem {
 const NAV: NavItem[] = [
   { to: '/', label: 'nav.dashboard', icon: LayoutDashboard, match: ['/runs'] },
   { to: '/portfolio', label: 'nav.portfolio', icon: Wallet },
+  { to: '/theses', label: 'nav.theses', icon: BookOpenCheck },
+  { to: '/deep-research', label: 'nav.deepResearch', icon: BookOpenCheck },
   { to: '/research', label: 'nav.research', icon: MessagesSquare },
   { to: '/skills', label: 'nav.skills', icon: BookOpen },
   { to: '/settings', label: 'nav.settings', icon: Settings },

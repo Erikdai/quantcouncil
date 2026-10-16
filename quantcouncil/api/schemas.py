@@ -191,6 +191,13 @@ class Bar(BaseModel):
 class KlineOut(BaseModel):
     ticker: str
     name: str | None = None
+    market: Literal["CN", "US"]
+    currency: Literal["CNY", "USD"]
+    source: str
+    timezone: str
+    as_of: date
+    latest_bar_date: str | None
+    price_basis: str
     bars: list[Bar]
 
 

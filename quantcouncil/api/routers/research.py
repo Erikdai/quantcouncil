@@ -56,6 +56,8 @@ async def ingest(body: IngestRequest) -> dict:
     from quantcouncil.worker.tasks import ingest_documents  # noqa: PLC0415
 
     ticker = _ticker(body.ticker)
+    if not resolve_instrument(ticker).is_cn:
+        raise HTTPException(422, "Document ingestion covers A-shares only; use US financial statement/news tools")
     task = await ingest_documents.kiq(ticker, list(body.kinds), body.since.isoformat() if body.since else None,
                                       body.limit)
     return {"task_id": task.task_id}

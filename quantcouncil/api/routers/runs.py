@@ -66,13 +66,17 @@ async def create_run(body: RunCreate, session: SessionDep,
         core_analysts(instrument.market, analysts)  # validates names
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
-    trade_date = body.trade_date or await asyncio.to_thread(latest_trading_day, instrument.market)
+    latest = await asyncio.to_thread(latest_trading_day, instrument.market) if (
+        body.trade_date is None or instrument.market == "US") else None
+    trade_date = body.trade_date or latest
+    if instrument.market == "US" and trade_date > latest:
+        raise HTTPException(422, "US research date must not be after the latest completed market session")
     if trade_date > date.today():
         raise HTTPException(422, "trade_date cannot be in the future")
     name = await asyncio.to_thread(display_name, instrument)
     run = Run(id=str(uuid.uuid4()), ticker=instrument.ticker, name=name, market=instrument.market,
               trade_date=trade_date, status=RunStatus.queued.value, analysts=analysts,
-              auto_approve=body.auto_approve, account_id=body.account_id, source="api",
+              auto_approve=body.auto_approve and instrument.is_cn, account_id=body.account_id, source="api",
               options={"max_debate_rounds": body.max_debate_rounds} if body.max_debate_rounds else {},
               reports={})
     session.add(run)

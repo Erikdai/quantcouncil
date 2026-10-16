@@ -249,6 +249,13 @@ export interface Bar {
 }
 
 export interface KlineOut {
+  market: 'CN' | 'US'
+  currency: 'CNY' | 'USD'
+  source: string
+  timezone: string
+  as_of: string
+  latest_bar_date: string | null
+  price_basis: string
   ticker: string
   name: string | null
   bars: Bar[]

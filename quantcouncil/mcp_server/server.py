@@ -19,8 +19,11 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 
 import quantcouncil
+from quantcouncil.markets import agent_config, resolve_instrument
 from quantcouncil.skills import get_skill, list_skills
+from tradingagents.dataflows.config import run_config
 from tradingagents.dataflows.errors import NoMarketDataError, VendorError
+from tradingagents.dataflows.vendors import sec_edgar
 from tradingagents.dataflows.vendors.cn import (
     canonical_symbol,
     capital,
@@ -30,15 +33,24 @@ from tradingagents.dataflows.vendors.cn import (
     market,
     news,
 )
+from tradingagents.dataflows.vendors.yahoo import (
+    fundamentals as us_fundamentals,
+    market as us_market,
+    news as us_news,
+)
+from tradingagents.dataflows.vendors.yahoo.snapshot import build_verified_market_snapshot
 
 logger = logging.getLogger(__name__)
 
 mcp = FastMCP(
     name="cn-market",
     instructions=(
-        "A-share (Shanghai/Shenzhen/Beijing) market data for research agents. Symbols accept 600519, "
-        "600519.SH, sz000001 etc. Every dated tool is point-in-time: pass the analysis date as as_of_date "
-        "and nothing published after it is returned. Results are markdown; a line starting with "
+        "A-share and US stock/ETF research data. Symbols accept 600519, 600519.SH, sz000001, AAPL, NVDA, BRK-B. "
+        "Shared price, indicator, fundamentals, statements and company news tools route by symbol. "
+        "Capital-flow, China macro and broker-report tools cover A-shares only. "
+        "Pass the analysis date as as_of_date. US statements use SEC filing dates; Yahoo profiles are live-only "
+        "and withheld for historical dates. Yahoo news has limited recent coverage, not a full archive. "
+        "Results are markdown; a line starting with "
         "DATA_UNAVAILABLE or NO_DATA means the data could not be served - say so, never estimate it."
     ),
     stateless_http=True,
@@ -72,45 +84,61 @@ def _today() -> str:
     return date.today().isoformat()
 
 
+async def _market_call(name: str, symbol: str, cn_fn: Callable, us_fn: Callable, *args: Any) -> str:
+    """Keep each threaded request's vendor/cache settings scoped to its market."""
+    def fetch() -> str:
+        instrument = resolve_instrument(symbol)
+        with run_config(agent_config(instrument)):
+            return (cn_fn if instrument.is_cn else us_fn)(instrument.ticker, *args)
+
+    return await _call(name, fetch)
+
+
 # --- Market -------------------------------------------------------------------------
 
 @mcp.tool(annotations=READ_ONLY)
 async def get_stock_bars(symbol: str, start_date: str, end_date: str) -> str:
-    """Daily OHLCV bars (forward-adjusted) for an A-share between two dates (YYYY-MM-DD)."""
-    return await _call("get_stock_bars", market.get_cn_stock_data, _symbol(symbol), start_date, end_date)
+    """Daily adjusted OHLCV for A-shares or US stocks/ETFs between two dates (YYYY-MM-DD)."""
+    return await _market_call("get_stock_bars", symbol, market.get_cn_stock_data,
+                              us_market.get_YFin_data_online, start_date, end_date)
 
 
 @mcp.tool(annotations=READ_ONLY)
 async def get_market_snapshot(symbol: str, as_of_date: str) -> str:
     """Verified latest bar, common indicators (SMA/EMA/RSI/MACD/Bollinger/ATR) and recent closes as of a date.
     Treat it as the source of truth for exact price and indicator values."""
-    return await _call("get_market_snapshot", market.build_cn_snapshot, _symbol(symbol), as_of_date, 20)
+    return await _market_call("get_market_snapshot", symbol, market.build_cn_snapshot,
+                              build_verified_market_snapshot, as_of_date, 20)
 
 
 @mcp.tool(annotations=READ_ONLY)
 async def get_technical_indicator(symbol: str, indicator: str, as_of_date: str, look_back_days: int = 30) -> str:
     """One technical indicator series. indicator: close_50_sma, close_200_sma, close_10_ema, macd, macds,
     macdh, rsi, boll, boll_ub, boll_lb, atr, vwma, mfi."""
-    return await _call("get_technical_indicator", market.get_cn_indicator_window, _symbol(symbol), indicator,
-                       as_of_date, look_back_days)
+    return await _market_call("get_technical_indicator", symbol, market.get_cn_indicator_window,
+                              us_market.get_stock_stats_indicators_window, indicator, as_of_date, look_back_days)
 
 
 # --- Fundamentals ---------------------------------------------------------------------
 
 @mcp.tool(annotations=READ_ONLY)
 async def get_company_fundamentals(symbol: str, as_of_date: str) -> str:
-    """Company profile, daily valuation (PE/PB/market cap, PE 3-year percentile) and the latest
-    results published by as_of_date."""
-    return await _call("get_company_fundamentals", fundamentals.get_cn_fundamentals, _symbol(symbol), as_of_date)
+    """A-share historical fundamentals, or Yahoo US company profile/valuation (live only).
+    US profiles are withheld for past dates; use get_financial_statement for SEC filing-date data."""
+    return await _market_call("get_company_fundamentals", symbol, fundamentals.get_cn_fundamentals,
+                              us_fundamentals.get_fundamentals, as_of_date)
 
 
 @mcp.tool(annotations=READ_ONLY)
 async def get_financial_statement(symbol: str, statement: Literal["income", "balance", "cashflow"],
                                   as_of_date: str, freq: Literal["quarterly", "annual"] = "quarterly") -> str:
-    """Key lines of a financial statement for the reports published (NOTICE_DATE) by as_of_date, in units of CNY 100M."""
+    """Statements published by as_of_date: A-share disclosures or US SEC EDGAR as filed.
+    Each response labels its units; US statements are not in CNY 100M. No Yahoo statement substitution."""
     fn = {"income": fundamentals.get_cn_income_statement, "balance": fundamentals.get_cn_balance_sheet,
           "cashflow": fundamentals.get_cn_cashflow}[statement]
-    return await _call("get_financial_statement", fn, _symbol(symbol), freq, as_of_date)
+    us_fn = {"income": sec_edgar.get_income_statement, "balance": sec_edgar.get_balance_sheet,
+             "cashflow": sec_edgar.get_cashflow}[statement]
+    return await _market_call("get_financial_statement", symbol, fn, us_fn, freq, as_of_date)
 
 
 @mcp.tool(annotations=READ_ONLY)
@@ -124,8 +152,10 @@ async def get_top_shareholders(symbol: str, as_of_date: str) -> str:
 
 @mcp.tool(annotations=READ_ONLY)
 async def get_company_news(symbol: str, start_date: str, end_date: str) -> str:
-    """Company news headlines and summaries (Eastmoney) in a date window."""
-    return await _call("get_company_news", news.get_cn_news, _symbol(symbol), start_date, end_date)
+    """Company headlines/summaries: Eastmoney for A-shares, Yahoo for US stocks.
+    US feed is a recent sample, not a historical archive; missing coverage is not neutral sentiment."""
+    return await _market_call("get_company_news", symbol, news.get_cn_news,
+                              us_news.get_news_yfinance, start_date, end_date)
 
 
 @mcp.tool(annotations=READ_ONLY)
@@ -184,7 +214,7 @@ async def search_research_docs(query: str, symbol: str | None = None, as_of_date
     from quantcouncil.rag.retriever import format_hits, search  # noqa: PLC0415 — needs the database
 
     try:
-        hits = await search(query, ticker=_symbol(symbol) if symbol else None,
+        hits = await search(query, ticker=resolve_instrument(symbol).ticker if symbol else None,
                             as_of=date.fromisoformat(as_of_date) if as_of_date else None, k=min(max(k, 1), 12))
     except Exception as exc:  # noqa: BLE001
         logger.warning("search_research_docs failed: %s", exc)

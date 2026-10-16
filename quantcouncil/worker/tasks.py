@@ -60,19 +60,22 @@ async def scan_watchlist() -> list[str]:
     """After the close: analyze every enabled watchlist name, auto-approving within risk limits."""
     async with session_scope() as session:
         items = (await session.execute(select(WatchItem).where(WatchItem.enabled.is_(True)))).scalars().all()
-        trade_date = latest_trading_day("CN")
+        trade_dates = {}
         run_ids = []
         for item in items:
             instrument = resolve_instrument(item.ticker)
+            if instrument.market not in trade_dates:
+                trade_dates[instrument.market] = latest_trading_day(instrument.market)
+            trade_date = trade_dates[instrument.market]
             run = Run(id=str(uuid.uuid4()), ticker=instrument.ticker, name=item.name, market=instrument.market,
                       trade_date=trade_date, status="queued", analysts=["market", "sentiment", "news", "fundamentals"],
-                      auto_approve=True, account_id=_settings.default_account, source="schedule", options={},
+                      auto_approve=instrument.is_cn, account_id=_settings.default_account, source="schedule", options={},
                       reports={})
             session.add(run)
             run_ids.append(run.id)
     for run_id in run_ids:
         await run_analysis.kiq(run_id)
-    logger.info("watchlist scan queued %d runs for %s", len(run_ids), trade_date)
+    logger.info("watchlist scan queued %d runs for sessions %s", len(run_ids), trade_dates)
     return run_ids
 
 
@@ -118,3 +121,41 @@ async def settle_memory() -> dict:
     settlement = await asyncio.to_thread(core.settle_all_pending)
     indexed = await sync_lessons(get_runtime().store, core.memory_log)
     return {"settled": len(settlement.settled), "failed": len(settlement.failed), "lessons_indexed": indexed}
+
+
+@broker.task(task_name='quantcouncil.deep_research')
+async def deep_research(job_id: str) -> str:
+    from quantcouncil.deep_research.service import execute_job  # noqa: PLC0415
+
+    return await execute_job(job_id)
+
+
+@broker.task(task_name='quantcouncil.reap_research_jobs', schedule=[{'cron': '*/10 * * * *'}])
+async def reap_research_jobs() -> list[str]:
+    from quantcouncil.deep_research.service import reap_jobs  # noqa: PLC0415
+
+    return await reap_jobs()
+
+
+@broker.task(task_name="quantcouncil.extract_theses")
+async def extract_theses(extraction_id: str):
+    from quantcouncil.thesis_tracking.service import run_extraction  # noqa: PLC0415
+    await run_extraction(extraction_id)
+
+
+@broker.task(task_name="quantcouncil.review_thesis")
+async def review_thesis(review_id: str):
+    from quantcouncil.thesis_tracking.service import run_review  # noqa: PLC0415
+    await run_review(review_id)
+
+
+@broker.task(task_name="quantcouncil.poll_theses", schedule=[{"cron": "0 * * * *"}])
+async def poll_theses():
+    from quantcouncil.thesis_tracking.service import poll_active  # noqa: PLC0415
+    return await poll_active()
+
+
+@broker.task(task_name="quantcouncil.reap_thesis_jobs", schedule=[{"cron": "*/10 * * * *"}])
+async def reap_thesis_jobs():
+    from quantcouncil.thesis_tracking.service import reap_stale  # noqa: PLC0415
+    await reap_stale()

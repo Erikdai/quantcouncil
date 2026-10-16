@@ -14,6 +14,7 @@ const POLL_MS = 90_000
 export function DocumentsPanel({ ticker }: { ticker: string }) {
   const t = useT()
   const scope = ticker.trim() || null
+  const isUs = /^[A-Za-z]{1,6}(?:[.-][A-Za-z])?$/.test(scope ?? '')
   const [polling, setPolling] = useState(false)
   const docs = useDocuments(scope, polling)
   const ingest = useIngest()
@@ -47,13 +48,14 @@ export function DocumentsPanel({ ticker }: { ticker: string }) {
           variant="primary"
           icon={<DatabaseZap className="size-3.5" />}
           loading={ingest.isPending}
-          disabled={!scope}
-          title={scope ? t('docs.ingestTitle') : t('docs.needTicker')}
+          disabled={!scope || isUs}
+          title={isUs ? t('docs.usScope') : scope ? t('docs.ingestTitle') : t('docs.needTicker')}
           onClick={onIngest}
         >
           {t('docs.ingest')}
         </Button>
       </div>
+      {isUs && <p className="px-4 py-2 text-xs text-muted">{t('docs.usScope')}</p>}
       {polling && <p className="border-b border-line bg-accent/5 px-4 py-1.5 text-[11px] text-accent">{t('docs.polling')}</p>}
 
       {docs.isPending ? (

@@ -13,7 +13,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 import quantcouncil
-from quantcouncil.api.routers import market, portfolio, reports, research, runs, settings
+from quantcouncil.api.routers import (
+    deep_research,
+    market,
+    portfolio,
+    reports,
+    research,
+    runs,
+    settings,
+    theses,
+)
 from quantcouncil.api.schemas import HealthOut
 from quantcouncil.config import get_settings
 from quantcouncil.db import get_engine
@@ -56,7 +65,7 @@ async def request_context(request: Request, call_next):
     return response
 
 
-for module in (runs, portfolio, market, research, settings, reports):
+for module in (runs, portfolio, market, research, settings, reports, deep_research, theses):
     app.include_router(module.router)
 
 
