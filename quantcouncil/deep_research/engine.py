@@ -18,7 +18,7 @@ from quantcouncil.deep_research.generation import structured
 from quantcouncil.deep_research.review import review_report
 from quantcouncil.deep_research.schemas import Evidence, ResearchPlan, ResearchReport
 from quantcouncil.deep_research.sec import FilingCorpus, download_filing, list_filings
-from quantcouncil.deep_research.segments import operating_income_facts, profit_contributions
+from quantcouncil.deep_research.segments import filing_facts, profit_contributions
 from quantcouncil.markets import Instrument, agent_config
 from tradingagents.dataflows.config import run_config
 from tradingagents.dataflows.vendors import sec_edgar
@@ -420,7 +420,7 @@ async def research(
             for filing in filings:
                 if any(item["accession"] == filing.accession for item in corpus.manifest):
                     segment_facts.extend(
-                        await asyncio.to_thread(operating_income_facts, filing, cik)
+                        await asyncio.to_thread(filing_facts, filing, cik)
                     )
             sources.update({hit.id: hit for hit in profit_contributions(segment_facts)})
         sources.update({hit.id: hit for hit in standard_comparisons(sources)})

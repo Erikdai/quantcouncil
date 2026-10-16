@@ -4,6 +4,7 @@
  * type-check. Params use `{name}` placeholders.
  */
 export const zh = {
+  "nav.theses": "观点追踪",
   "nav.deepResearch": "专题投研",
   "deep.referenceMissing": "来源缺失",
   "deep.checkDetails": "查看核验问题",

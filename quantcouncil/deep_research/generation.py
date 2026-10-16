@@ -41,7 +41,7 @@ async def structured(model, schema, messages, record):
         error = result.get("parsing_error")
         cause = getattr(error, "__cause__", None)
         detail = (
-            json.dumps(cause.errors(include_input=False, include_url=False))
+            json.dumps(cause.errors(include_input=False, include_url=False, include_context=False))
             if hasattr(cause, "errors")
             else str(error)[-1500:]
             if error

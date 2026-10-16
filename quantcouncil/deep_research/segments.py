@@ -9,11 +9,13 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 
-from quantcouncil.deep_research.finance import calculate
+from quantcouncil.deep_research.finance import METRICS, calculate
 from quantcouncil.deep_research.schemas import Evidence
 
 
-def operating_income_facts(filing, cik: str) -> list[Evidence]:
+def filing_facts(
+    filing, cik: str, metrics: tuple[str, ...] = ("operating_income",)
+) -> list[Evidence]:
     raw = (
         Path(os.getenv("QUANTCOUNCIL_DATA_DIR", ".quantcouncil"))
         / "sec_filings"
@@ -23,8 +25,10 @@ def operating_income_facts(filing, cik: str) -> list[Evidence]:
     soup = BeautifulSoup(re.sub(rb"<\?xml[^>]*\?>", b"", raw, count=1), "lxml")
     contexts = {c.get("id"): c for c in soup.find_all("xbrli:context")}
     out = {}
+    tags = {f"us-gaap:{tag}": metric for metric in metrics for tag in METRICS[metric][1]}
     for cell in soup.find_all("ix:nonfraction"):
-        if cell.get("name") != "us-gaap:OperatingIncomeLoss" or cell.find_parent("ix:hidden"):
+        metric_name = tags.get(cell.get("name"))
+        if metric_name is None or cell.find_parent("ix:hidden"):
             continue
         context = contexts.get(cell.get("contextref"))
         unit = soup.find("xbrli:unit", id=cell.get("unitref"))
@@ -36,7 +40,10 @@ def operating_income_facts(filing, cik: str) -> list[Evidence]:
         members = context.find_all("xbrldi:explicitmember")
         if context.find("xbrldi:typedmember") or len(members) > 1:
             continue
-        if members and members[0].get("dimension") != "us-gaap:StatementBusinessSegmentsAxis":
+        if members and (
+            metric_name != "operating_income"
+            or members[0].get("dimension") != "us-gaap:StatementBusinessSegmentsAxis"
+        ):
             continue
         start, end = context.find("xbrli:startdate"), context.find("xbrli:enddate")
         if start is None or end is None:
@@ -55,14 +62,24 @@ def operating_income_facts(filing, cik: str) -> list[Evidence]:
                 value = -value
         except (InvalidOperation, ValueError):
             continue
-        metric = f"operating_income:{segment}"
+        metric = f"operating_income:{segment}" if metric_name == "operating_income" else metric_name
         identity = f"{cik}:{filing.accession}:{metric}:{start}:{end}"
         key = "F" + hashlib.sha256(identity.encode()).hexdigest()[:14]
-        content = f"Operating income; segment {segment}: {value / Decimal(1000000)} USD million; period {start} to {end}; filed {filing.filed}; form {filing.form}; inline XBRL us-gaap:OperatingIncomeLoss; context {cell.get('contextref')}."
-        out[(segment, start, end)] = Evidence(
+        content = f"{METRICS[metric_name][0]}; segment {segment}: {value / Decimal(1000000)} USD million; period {start} to {end}; filed {filing.filed}; form {filing.form}; inline XBRL {cell.get('name')}; context {cell.get('contextref')}."
+        preference = METRICS[metric_name][1].index(cell.get("name").split(":")[-1])
+        identity_key = (metric, start, end)
+        if identity_key in out and out[identity_key].data["tag_preference"] < preference:
+            continue
+        if (
+            identity_key in out
+            and out[identity_key].data["tag_preference"] == preference
+            and Decimal(out[identity_key].data["value"]) != value
+        ):
+            raise ValueError(f"Conflicting inline XBRL facts for {metric} {start} to {end}")
+        out[identity_key] = Evidence(
             id=key,
             kind="financial",
-            title=f"Operating income · {segment} · {start} to {end}",
+            title=f"{METRICS[metric_name][0]} · {segment} · {start} to {end}",
             url=filing.url,
             filed=filing.filed,
             accession=filing.accession,
@@ -77,9 +94,13 @@ def operating_income_facts(filing, cik: str) -> list[Evidence]:
                 "value": str(value),
                 "unit": "USD",
                 "frequency": "as_reported",
-                "tag": "OperatingIncomeLoss",
+                "tag": cell.get("name").split(":")[-1],
+                "metric_name": metric_name,
+                "form": filing.form,
+                "report_period": filing.period,
                 "context": cell.get("contextref"),
                 "provenance": "visible_inline_xbrl",
+                "tag_preference": preference,
             },
         )
     return list(out.values())

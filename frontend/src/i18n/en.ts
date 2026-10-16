@@ -2,6 +2,7 @@ import type { Messages } from './zh'
 
 /** English UI strings. Typed as `Messages`: missing or extra keys fail the type-check. */
 export const en: Messages = {
+  "nav.theses": "Thesis tracker",
   "nav.deepResearch": "Deep research",
   "deep.referenceMissing": "Missing source",
   "deep.checkDetails": "View check details",

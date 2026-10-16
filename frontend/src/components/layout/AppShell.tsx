@@ -21,6 +21,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { to: '/', label: 'nav.dashboard', icon: LayoutDashboard, match: ['/runs'] },
   { to: '/portfolio', label: 'nav.portfolio', icon: Wallet },
+  { to: '/theses', label: 'nav.theses', icon: BookOpenCheck },
   { to: '/deep-research', label: 'nav.deepResearch', icon: BookOpenCheck },
   { to: '/research', label: 'nav.research', icon: MessagesSquare },
   { to: '/skills', label: 'nav.skills', icon: BookOpen },

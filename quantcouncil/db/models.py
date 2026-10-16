@@ -20,6 +20,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -233,3 +234,75 @@ class ResearchJob(TimestampMixin, Base):
     warnings: Mapped[list[Any]] = mapped_column(JSONB, default=list)
     error: Mapped[str | None] = mapped_column(Text)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
+class ThesisTimestampMixin(TimestampMixin):
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class ThesisExtraction(ThesisTimestampMixin, Base):
+    __tablename__ = "thesis_extractions"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    source_job_id: Mapped[str] = mapped_column(ForeignKey("research_jobs.id"), index=True)
+    status: Mapped[str] = mapped_column(String(24))
+    report_hash: Mapped[str] = mapped_column(String(64))
+    candidates: Mapped[list[Any]] = mapped_column(JSONB, default=list)
+    outputs: Mapped[list[Any]] = mapped_column(JSONB, default=list)
+    model: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    error: Mapped[str | None] = mapped_column(Text)
+
+
+class Thesis(ThesisTimestampMixin, Base):
+    __tablename__ = "theses"
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    ticker: Mapped[str] = mapped_column(String(32), index=True)
+    lifecycle: Mapped[str] = mapped_column(String(24), default="draft", index=True)
+    current_version: Mapped[int] = mapped_column(Integer, default=0)
+    judgment: Mapped[str | None] = mapped_column(String(24))
+    data_health: Mapped[str] = mapped_column(String(24), default="unknown")
+    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    next_check_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_review_id: Mapped[str | None] = mapped_column(String(36))
+
+
+class ThesisVersion(ThesisTimestampMixin, Base):
+    __tablename__ = "thesis_versions"
+    __table_args__ = (UniqueConstraint("thesis_id", "number"),)
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    thesis_id: Mapped[str] = mapped_column(ForeignKey("theses.id"), index=True)
+    number: Mapped[int] = mapped_column(Integer)
+    statement: Mapped[str] = mapped_column(Text)
+    horizon: Mapped[str] = mapped_column(Text)
+    rule: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    origin: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    contract_hash: Mapped[str] = mapped_column(String(64))
+    model: Mapped[dict[str, Any]] = mapped_column(JSONB)
+    meaning_review: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    baseline_review_id: Mapped[str | None] = mapped_column(String(36))
+    confirmed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    confirmation: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+
+
+class ThesisReview(ThesisTimestampMixin, Base):
+    __tablename__ = "thesis_reviews"
+    __table_args__ = (
+        UniqueConstraint("version_id", "evidence_key"),
+        Index(
+            "uq_thesis_live_review", "thesis_id", unique=True,
+            postgresql_where=text("status IN ('queued', 'running')"),
+        ),
+    )
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    thesis_id: Mapped[str] = mapped_column(ForeignKey("theses.id"), index=True)
+    version_id: Mapped[str] = mapped_column(ForeignKey("thesis_versions.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(24))
+    status: Mapped[str] = mapped_column(String(24), index=True)
+    as_of: Mapped[date] = mapped_column(Date)
+    evidence_key: Mapped[str | None] = mapped_column(String(64))
+    snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    result: Mapped[dict[str, Any] | None] = mapped_column(JSONB)
+    outputs: Mapped[list[Any]] = mapped_column(JSONB, default=list)
+    error: Mapped[str | None] = mapped_column(Text)
+    unread: Mapped[bool] = mapped_column(Boolean, default=False)

@@ -135,3 +135,27 @@ async def reap_research_jobs() -> list[str]:
     from quantcouncil.deep_research.service import reap_jobs  # noqa: PLC0415
 
     return await reap_jobs()
+
+
+@broker.task(task_name="quantcouncil.extract_theses")
+async def extract_theses(extraction_id: str):
+    from quantcouncil.thesis_tracking.service import run_extraction  # noqa: PLC0415
+    await run_extraction(extraction_id)
+
+
+@broker.task(task_name="quantcouncil.review_thesis")
+async def review_thesis(review_id: str):
+    from quantcouncil.thesis_tracking.service import run_review  # noqa: PLC0415
+    await run_review(review_id)
+
+
+@broker.task(task_name="quantcouncil.poll_theses", schedule=[{"cron": "0 * * * *"}])
+async def poll_theses():
+    from quantcouncil.thesis_tracking.service import poll_active  # noqa: PLC0415
+    return await poll_active()
+
+
+@broker.task(task_name="quantcouncil.reap_thesis_jobs", schedule=[{"cron": "*/10 * * * *"}])
+async def reap_thesis_jobs():
+    from quantcouncil.thesis_tracking.service import reap_stale  # noqa: PLC0415
+    await reap_stale()
