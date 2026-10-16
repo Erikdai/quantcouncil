@@ -257,8 +257,10 @@ async def _core_for(run: Run) -> CouncilCore:
                     overrides=overrides)
 
 
-async def _portfolio_context(run: Run) -> PortfolioContext:
+async def _portfolio_context(run: Run) -> PortfolioContext | None:
     """The paper account as the decision agents see it: cash and holdings on the trade date."""
+    if run.market != "CN":
+        return None  # The paper account is CNY-only; US research has no USD book yet.
     async with session_scope() as session:
         book = await ledger.book_view(session, run.account_id, run.trade_date, get_settings().initial_cash)
     return PortfolioContext(cash=round(book.cash, 2), currency="CNY", positions=[

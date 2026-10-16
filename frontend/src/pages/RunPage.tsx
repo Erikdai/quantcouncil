@@ -141,7 +141,13 @@ function ChartCard({ run, rating }: { run: RunOut; rating: string | null }) {
         ) : data.bars.length === 0 ? (
           <EmptyState icon={<CandlestickChart />} title={t('chart.empty')} />
         ) : (
-          <KlineChart bars={data.bars} markerDate={run.trade_date} rating={rating} height={320} />
+          <>
+            <p className="px-3 pb-2 text-xs text-muted">
+              {data.source} · {data.currency} · {data.timezone} · {t('chart.latestBar')}: {data.latest_bar_date}
+              {' · '}{t('chart.adjusted')}
+            </p>
+            <KlineChart bars={data.bars} markerDate={run.trade_date} rating={rating} height={320} />
+          </>
         )}
       </div>
     </Card>

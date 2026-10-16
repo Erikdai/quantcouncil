@@ -12,7 +12,7 @@ from sqlalchemy import select
 from quantcouncil.api.deps import SessionDep
 from quantcouncil.api.schemas import Bar, KlineOut, WatchItem
 from quantcouncil.db.models import WatchItem as WatchRow
-from quantcouncil.markets import display_name, resolve_instrument
+from quantcouncil.markets import agent_config, display_name, latest_trading_day, resolve_instrument
 
 router = APIRouter(tags=["market"])
 
@@ -26,9 +26,9 @@ def _bars(ticker: str, market: str, start: date, end: date) -> list[Bar]:
         from tradingagents.dataflows.config import run_config  # noqa: PLC0415
         from tradingagents.dataflows.vendors.yahoo.ohlcv import load_ohlcv  # noqa: PLC0415
 
-        with run_config({}):
+        with run_config(agent_config(resolve_instrument(ticker))):
             df = load_ohlcv(ticker, end.isoformat(), fill_gaps=False)
-    df = df[df["Date"] >= str(start)].dropna(subset=["Close"])
+    df = df[(df["Date"] >= str(start)) & (df["Date"] <= str(end))].dropna(subset=["Close"])
     return [Bar(time=d.strftime("%Y-%m-%d"), open=float(o), high=float(h), low=float(lo), close=float(c),
                 volume=float(v or 0))
             for d, o, h, lo, c, v in zip(df["Date"], df["Open"], df["High"], df["Low"], df["Close"], df["Volume"],
@@ -42,13 +42,22 @@ async def kline(ticker: str, start: date | None = None, end: date | None = None)
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
     end = end or date.today()
+    if instrument.market == "US":
+        end = min(end, await asyncio.to_thread(latest_trading_day, instrument.market))
     start = start or end - timedelta(days=240)
+    if start > end:
+        raise HTTPException(422, "start must be on or before the latest completed session/end date")
     try:
         bars = await asyncio.to_thread(_bars, instrument.ticker, instrument.market, start, end)
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(502, f"market data unavailable: {exc}") from exc
     name = await asyncio.to_thread(display_name, instrument)
-    return KlineOut(ticker=instrument.ticker, name=name, bars=bars)
+    return KlineOut(ticker=instrument.ticker, name=name, bars=bars, market=instrument.market,
+                    currency="CNY" if instrument.is_cn else "USD",
+                    source="AKShare/BaoStock" if instrument.is_cn else "Yahoo Finance",
+                    timezone="Asia/Shanghai" if instrument.is_cn else "America/New_York",
+                    as_of=end, latest_bar_date=bars[-1].time if bars else None,
+                    price_basis="forward-adjusted" if instrument.is_cn else "dividend/split-adjusted")
 
 
 class WatchBody(BaseModel):
